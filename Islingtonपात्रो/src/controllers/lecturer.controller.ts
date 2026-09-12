@@ -3,11 +3,11 @@ import { CrudService } from "../services/crud.service";
 
 const service = new CrudService();
 
-export const getModules = async (req: Request, res: Response) => {
+export const getLecturers = async (req: Request, res: Response) => {
 
     try {
 
-        const data = await service.getAll("module");
+        const data = await service.getAll("lecturer");
 
         res.json({
             success: true,
@@ -24,13 +24,13 @@ export const getModules = async (req: Request, res: Response) => {
 };
 
 
-export const getModule = async (req: Request, res: Response) => {
+export const getLecturer = async (req: Request, res: Response) => {
 
     try {
 
         const data = await service.getById(
-            "module",
-            "module_id",
+            "lecturer",
+            "lecturer_id",
             Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
         );
 
@@ -49,18 +49,18 @@ export const getModule = async (req: Request, res: Response) => {
 };
 
 
-export const createModule = async (req: Request, res: Response) => {
+export const createLecturer = async (req: Request, res: Response) => {
 
     try {
 
         const data = await service.create(
-            "module",
+            "lecturer",
             req.body
         );
 
         res.status(201).json({
             success: true,
-            message: "Module created successfully",
+            message: "Lecturer created successfully",
             data: data
         });
 
@@ -74,20 +74,20 @@ export const createModule = async (req: Request, res: Response) => {
 };
 
 
-export const updateModule = async (req: Request, res: Response) => {
+export const updateLecturer = async (req: Request, res: Response) => {
 
     try {
 
         const data = await service.update(
-            "module",
-            "module_id",
+            "lecturer",
+            "lecturer_id",
             Array.isArray(req.params.id) ? req.params.id[0] : req.params.id,
             req.body
         );
 
         res.json({
             success: true,
-            message: "Module updated successfully",
+            message: "Lecturer updated successfully",
             data: data
         });
 
@@ -101,19 +101,19 @@ export const updateModule = async (req: Request, res: Response) => {
 };
 
 
-export const deleteModule = async (req: Request, res: Response) => {
+export const deleteLecturer = async (req: Request, res: Response) => {
 
     try {
 
         await service.delete(
-            "module",
-            "module_id",
+            "lecturer",
+            "lecturer_id",
             Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
         );
 
         res.json({
             success: true,
-            message: "Module deleted successfully"
+            message: "Lecturer deleted successfully"
         });
 
     } catch (error: any) {
