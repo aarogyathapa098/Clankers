@@ -1,4 +1,5 @@
 import { AcademicSidebar } from "@/components/layout/AcademicSidebar";
+import { TimetablePage as TimetablePlanner } from "@/components/timetable/TimetablePage";
 
 export default function TimetablePage() {
   return (
@@ -6,10 +7,7 @@ export default function TimetablePage() {
       <AcademicSidebar />
       <main className="dashboard-main">
         <div className="dashboard-content">
-          <section className="panel">
-            <h1>Master Timetable</h1>
-            <p>The master timetable view will appear here.</p>
-          </section>
+          <TimetablePlanner />
         </div>
       </main>
     </>
