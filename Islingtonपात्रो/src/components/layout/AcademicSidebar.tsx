@@ -63,6 +63,25 @@ const navSections: NavSection[] = [
     children: [
       { label: "Workload", href: "/workload" },
       { label: "Module Assignments", href: "/modules" },
+<<<<<<< HEAD
+=======
+    ],
+  },
+  {
+    label: "Lookups",
+    icon: "lookups",
+    children: [
+      { label: "Faculty Schedule", href: "/lookups/faculty" },
+      { label: "Cohort Schedule", href: "/lookups/cohort" },
+      { label: "Room Search", href: "/lookups/room" },
+    ],
+  },
+  {
+    label: "Analytics",
+    icon: "analytics",
+    children: [
+      { label: "Utilization & Metrics", href: "/analytics/utilization" },
+>>>>>>> 17a6d4300594e8ace2063ac6d94e04fc6948af43
     ],
   },
   {
@@ -186,6 +205,10 @@ export function AcademicSidebar() {
     Resources: true,
     Faculty: true,
     Lookups: true,
+<<<<<<< HEAD
+=======
+    Analytics: true,
+>>>>>>> 17a6d4300594e8ace2063ac6d94e04fc6948af43
   });
 
   return (

@@ -1,6 +1,7 @@
 "use client";
 
 import { AcademicSidebar } from "@/components/layout/AcademicSidebar";
+<<<<<<< HEAD
 
 // --- Outline SVG Icons ---
 function SearchIcon({ size = 16, color = "currentColor" }: { size?: number; color?: string }) {
@@ -214,12 +215,16 @@ const recentAssignments = [
   { module: "DB204", faculty: "Dr. Kumar", cohort: "Group A", hours: 3 },
   { module: "SE302", faculty: "Dr. Chen", cohort: "Group C", hours: 4 },
 ];
+=======
+import { RoleDashboard } from "@/components/dashboard/RoleDashboard";
+>>>>>>> 17a6d4300594e8ace2063ac6d94e04fc6948af43
 
 export default function DashboardPage() {
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F1F7FF", display: "flex" }}>
       {/* Sidebar */}
       <AcademicSidebar />
+<<<<<<< HEAD
 
       {/* Main Area */}
       <div style={{ marginLeft: "258px", flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
@@ -1105,5 +1110,13 @@ export default function DashboardPage() {
         </main>
       </div>
     </div>
+=======
+      <main className="dashboard-main">
+        <div className="dashboard-content">
+          <RoleDashboard />
+        </div>
+      </main>
+    </>
+>>>>>>> 17a6d4300594e8ace2063ac6d94e04fc6948af43
   );
 }

@@ -360,6 +360,69 @@ button {
   box-shadow: 0 12px 30px rgba(14, 103, 203, 0.22);
 }
 
+.role-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.role-control label {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.role-control select {
+  min-height: 42px;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 0 34px 0 12px;
+  color: #10213d;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(16, 40, 82, 0.06);
+  outline: none;
+}
+
+.blank-role-panel {
+  display: grid;
+  min-height: 420px;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 44px;
+  text-align: center;
+  background:
+    linear-gradient(135deg, rgba(29, 116, 245, 0.1), rgba(255, 255, 255, 0) 48%),
+    rgba(255, 255, 255, 0.9);
+}
+
+.blank-role-panel span {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 12px;
+  color: #0e67cb;
+  background: #e8f2ff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.blank-role-panel h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 30px;
+}
+
+.blank-role-panel p {
+  max-width: 540px;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1582,6 +1645,7 @@ button {
     display: grid;
   }
 
+<<<<<<< HEAD
   .timetable-hero,
   .timetable-board-header,
   .resource-page-header,
@@ -1606,5 +1670,14 @@ button {
 
   .day-selector {
     overflow-x: auto;
+=======
+  .role-control {
+    justify-content: stretch;
+  }
+
+  .role-control select,
+  .role-control .admin-chip {
+    width: 100%;
+>>>>>>> 17a6d4300594e8ace2063ac6d94e04fc6948af43
   }
 }
