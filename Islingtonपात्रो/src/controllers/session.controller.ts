@@ -93,7 +93,7 @@ export const updateSession = async (
         const data = await service.update(
             "session",
             "session_id",
-            req.params.id,
+            Array.isArray(req.params.id) ? req.params.id[0] : req.params.id,
             req.body
         );
 
@@ -123,7 +123,7 @@ export const deleteSession = async (
         await service.delete(
             "session",
             "session_id",
-            req.params.id
+            Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
         );
 
         res.json({
