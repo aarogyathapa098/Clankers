@@ -18,21 +18,21 @@ export default function ModulesPage() {
               <button className="btn" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 [BULK ALLOCATE]
               </button>
-              <button className="btn" style={{ background: '#000', color: '#fff', border: 'none' }}>
+              <button className="btn" style={{ background: '#1677f5', color: '#ffffff', border: 'none' }}>
                 + CREATE NEW ASSIGNMENT
               </button>
             </div>
           </header>
 
-          <div className="panel" style={{ marginBottom: 24, padding: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+          <div className="panel" style={{ marginBottom: 24, padding: '16px', background: '#ffffff', border: '1px solid #e2e8f0' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div className="muted" style={{ fontSize: '10px', fontWeight: 'bold' }}>⚡ OPERATIONAL WORKFLOW PROTOCOL (Y22 &amp; Y23)</div>
               <div style={{ fontSize: '9px', border: '1px solid #cbd5e1', padding: '2px 6px', color: '#64748b' }}>STATUS: PRE-TIMETABLE</div>
             </div>
             <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-              <div style={{ flex: 1, border: '1px solid #000', padding: '12px', background: '#fff', borderRadius: '4px' }}>
+              <div style={{ flex: 1, border: '1px solid #E5ECF5', padding: '12px', background: '#ffffff', borderRadius: '4px' }}>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <div style={{ background: '#000', color: '#fff', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold', borderRadius: '2px' }}>1</div>
+                  <div style={{ background: '#1677f5', color: '#fff', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold', borderRadius: '6px' }}>1</div>
                   <div>
                     <div style={{ fontSize: '12px', fontWeight: 'bold' }}>CREATE MODULE ASSIGNMENT</div>
                     <div style={{ fontSize: '10px', color: '#64748b', marginTop: '4px' }}>Req: [Module Code] + [Assigned Faculty] + [Target Cohort] = Defines weekly Contact Hours.</div>
@@ -42,9 +42,9 @@ export default function ModulesPage() {
               <div style={{ color: '#94a3b8', fontSize: '20px' }}>→</div>
               <div style={{ fontSize: '10px', color: '#94a3b8', textAlign: 'center', width: '80px', borderBottom: '1px dashed #cbd5e1', paddingBottom: '4px' }}>UNLOCKS SLOT BINDING</div>
               <div style={{ color: '#94a3b8', fontSize: '20px' }}>→</div>
-              <div style={{ flex: 1, border: '1px solid #e2e8f0', padding: '12px', background: '#fff', borderRadius: '4px' }}>
+              <div style={{ flex: 1, border: '1px solid #e2e8f0', padding: '12px', background: '#ffffff', borderRadius: '4px' }}>
                 <div style={{ display: 'flex', gap: '8px', opacity: 0.5 }}>
-                  <div style={{ background: '#94a3b8', color: '#fff', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold', borderRadius: '2px' }}>2</div>
+                  <div style={{ background: '#94a3b8', color: '#fff', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold', borderRadius: '6px' }}>2</div>
                   <div>
                     <div style={{ fontSize: '12px', fontWeight: 'bold' }}>TIMETABLE SESSION SCHEDULING</div>
                     <div style={{ fontSize: '10px', color: '#64748b', marginTop: '4px' }}>Slot assignments into Room x Time Grid. Unscheduled hours route into the draft pool.</div>
@@ -54,7 +54,7 @@ export default function ModulesPage() {
             </div>
             <div style={{ fontSize: '10px', color: '#64748b', marginTop: '16px', display: 'flex', justifyContent: 'space-between' }}>
               <div><strong>Directive:</strong> Assignments establish compulsory weekly hours; unscheduled hours automatically flag the cohort/faculty in the schedule draft pool.</div>
-              <div style={{ background: '#e2e8f0', padding: '2px 6px', borderRadius: '2px' }}>DRAFT_POOL_REFS: 2</div>
+              <div style={{ background: '#E5ECF5', padding: '2px 6px', borderRadius: '6px' }}>DRAFT_POOL_REFS: 2</div>
             </div>
           </div>
 
@@ -76,7 +76,7 @@ export default function ModulesPage() {
           </div>
 
           <section className="panel" style={{ padding: 0, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '2px solid #000', background: '#f8fafc' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderBottom: '1px solid #E5ECF5', background: '#ffffff' }}>
               <h2 style={{ fontSize: '12px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>MASTER TEACHING ALLOCATIONS MATRIX <span className="muted" style={{fontWeight: 'normal', fontSize: '10px'}}>[ 7 ALLOCATIONS RECORDED ]</span></h2>
               <div style={{ fontSize: '10px', color: '#64748b', display: 'flex', gap: '16px', alignItems: 'center' }}>
                 <div>SORT: <strong>CODE ASC</strong> ▾</div>
@@ -87,7 +87,7 @@ export default function ModulesPage() {
             <div className="table-wrap">
               <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: '12px' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#fff' }}>
+                  <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#ffffff' }}>
                     <th style={{ padding: '12px 16px', fontSize: '10px', color: '#64748b' }}>MODULE CODE &amp;<br/>TITLE</th>
                     <th style={{ padding: '12px 16px', fontSize: '10px', color: '#64748b' }}>ASSIGNED<br/>FACULTY</th>
                     <th style={{ padding: '12px 16px', fontSize: '10px', color: '#64748b' }}>TARGET COHORT<br/>(SIZE)</th>
@@ -108,13 +108,13 @@ export default function ModulesPage() {
                     if (isUnscheduled) {
                       statusBox = <div style={{ border: '1px dashed #ef4444', color: '#ef4444', padding: '4px 8px', fontSize: '10px', fontWeight: 'bold', display: 'inline-block' }}>UNSCHEDULED<br/><span style={{fontSize: '9px', fontWeight: 'normal'}}>(DRAFT)</span></div>;
                     } else if (isPartial) {
-                      statusBox = <div style={{ border: '1px solid #000', color: '#000', padding: '4px 8px', fontSize: '10px', fontWeight: 'bold', display: 'inline-block' }}>PARTIAL<br/><span style={{fontSize: '9px', fontWeight: 'normal'}}>({module.scheduled}/{module.totalSessions})</span></div>;
+                      statusBox = <div style={{ border: '1px solid #E5ECF5', color: '#0f203d', padding: '4px 8px', fontSize: '10px', fontWeight: 'bold', display: 'inline-block' }}>PARTIAL<br/><span style={{fontSize: '9px', fontWeight: 'normal'}}>({module.scheduled}/{module.totalSessions})</span></div>;
                     } else {
                       statusBox = <div style={{ border: '1px solid #cbd5e1', color: '#64748b', padding: '4px 8px', fontSize: '10px', fontWeight: 'bold', display: 'inline-block' }}>FULLY<br/>SCHEDULED</div>;
                     }
                     
                     return (
-                      <tr key={module.id} style={{ borderBottom: '1px solid #e2e8f0', background: '#fff' }}>
+                      <tr key={module.id} style={{ borderBottom: '1px solid #e2e8f0', background: '#ffffff' }}>
                         <td style={{ padding: '16px' }}>
                           <strong style={{ fontSize: '14px' }}>{module.code}</strong><br/>
                           <span style={{ fontSize: '12px', fontWeight: 'bold' }}>{module.name.split(' ').slice(0, 2).join(' ')}</span><br/>
@@ -142,7 +142,7 @@ export default function ModulesPage() {
                         <td style={{ padding: '16px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <div>
-                              <div style={{ fontWeight: 'bold', color: isUnscheduled ? '#ef4444' : '#000' }}>{module.scheduled} / {module.totalSessions}</div>
+                              <div style={{ fontWeight: 'bold', color: isUnscheduled ? '#ef4444' : '#0f203d' }}>{module.scheduled} / {module.totalSessions}</div>
                               <div style={{ fontSize: '10px', color: '#64748b' }}>sessions<br/>scheduled</div>
                             </div>
                             {isFullyScheduled && <div style={{ color: '#10b981', fontSize: '16px' }}>✔</div>}
@@ -155,7 +155,7 @@ export default function ModulesPage() {
                           <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
                             <button className="btn" style={{ fontSize: '10px', padding: '4px 8px' }}>[EDIT]</button>
                             {isUnscheduled ? (
-                              <button className="btn" style={{ background: '#000', color: '#fff', fontSize: '10px', padding: '4px 8px', border: 'none' }}>[SCHEDULE SLOT]</button>
+                              <button className="btn" style={{ background: '#1677f5', color: '#fff', fontSize: '10px', padding: '4px 8px', border: 'none' }}>[SCHEDULE SLOT]</button>
                             ) : (
                               <button className="btn" style={{ fontSize: '10px', padding: '4px 8px' }}>[VIEW TIMETABLE]</button>
                             )}
@@ -167,7 +167,7 @@ export default function ModulesPage() {
                 </tbody>
               </table>
             </div>
-            <div style={{ padding: '12px 16px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', fontSize: '10px', color: '#94a3b8', display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ padding: '12px 16px', background: '#ffffff', borderTop: '1px solid #e2e8f0', fontSize: '10px', color: '#94a3b8', display: 'flex', justifyContent: 'space-between' }}>
               <div>SCHEMA: [module_assignments (Prod-C)] | INDEXING: P-KEY, REGION_ID</div>
               <div>PAGE 1 OF 1 &lt; &gt;</div>
             </div>
@@ -177,3 +177,6 @@ export default function ModulesPage() {
     </>
   );
 }
+
+
+

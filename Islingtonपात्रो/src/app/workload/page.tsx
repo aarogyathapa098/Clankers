@@ -25,7 +25,7 @@ export default function WorkloadPage() {
               <button className="btn" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <span style={{ fontSize: '16px' }}>↓</span> EXPORT WORKLOAD REPORT
               </button>
-              <button className="btn" style={{ background: '#000', color: '#fff', border: 'none' }}>
+              <button className="btn" style={{ background: '#1677f5', color: '#ffffff', border: 'none' }}>
                 ⚙ ADJUST MAX THRESHOLDS
               </button>
             </div>
@@ -88,7 +88,7 @@ export default function WorkloadPage() {
                   <h2 style={{ fontSize: '14px', marginBottom: '8px' }}>FACULTY DIRECTORY <span className="muted" style={{fontWeight: 'normal', fontSize: '12px'}}>[SHOWING 7 RECORDS PROFILED]</span></h2>
                   <div className="toolbar" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <span className="muted" style={{ fontSize: '10px', fontWeight: 'bold' }}>FILTER:</span>
-                    <button className="btn" style={{ background: '#000', color: '#fff', fontSize: '10px', padding: '4px 12px', borderRadius: '12px', border: 'none' }}>ALL (7)</button>
+                    <button className="btn" style={{ background: '#1677f5', color: '#fff', fontSize: '10px', padding: '4px 12px', borderRadius: '12px', border: 'none' }}>ALL (7)</button>
                     <button className="btn" style={{ fontSize: '10px', padding: '4px 12px', borderRadius: '12px' }}>OVERLOAD (1)</button>
                     <button className="btn" style={{ fontSize: '10px', padding: '4px 12px', borderRadius: '12px' }}>NEAR LIMIT (5)</button>
                     <button className="btn" style={{ fontSize: '10px', padding: '4px 12px', borderRadius: '12px' }}>NORMAL (1)</button>
@@ -99,7 +99,7 @@ export default function WorkloadPage() {
               <div className="table-wrap">
                 <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: '12px' }}>
                   <thead>
-                    <tr style={{ borderBottom: '2px solid #000' }}>
+                    <tr style={{ borderBottom: '1px solid #E5ECF5' }}>
                       <th style={{ padding: '12px 8px', fontSize: '10px', color: '#64748b' }}>FACULTY<br/>MEMBER</th>
                       <th style={{ padding: '12px 8px', fontSize: '10px', color: '#64748b' }}>DEPARTMENT</th>
                       <th style={{ padding: '12px 8px', fontSize: '10px', color: '#64748b' }}>CONTRACT</th>
@@ -119,9 +119,9 @@ export default function WorkloadPage() {
                         <tr key={faculty.id} style={{ borderBottom: '1px solid var(--card-border)', background: bg }}>
                           <td style={{ padding: '16px 8px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <div style={{ width: '24px', height: '24px', background: '#e2e8f0', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}>{faculty.name.split(' ').pop()?.[0]}</div>
+                              <div style={{ width: '24px', height: '24px', background: '#E5ECF5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}>{faculty.name.split(' ').pop()?.[0]}</div>
                               <div>
-                                <strong style={{ color: isOverload ? '#ef4444' : '#000' }}>{faculty.name}</strong>
+                                <strong style={{ color: isOverload ? '#ef4444' : '#0f203d' }}>{faculty.name}</strong>
                                 {isOverload && <div style={{ color: '#ef4444', fontSize: '9px', fontWeight: 'bold' }}>[! OVERLOAD]</div>}
                               </div>
                             </div>
@@ -129,17 +129,17 @@ export default function WorkloadPage() {
                           <td style={{ padding: '16px 8px', color: '#64748b' }}>{faculty.department}</td>
                           <td style={{ padding: '16px 8px' }}>{faculty.maxHours.toFixed(1)} h /<br/><span style={{fontSize: '10px', color: '#64748b'}}>wk</span></td>
                           <td style={{ padding: '16px 8px' }}>
-                            <span style={{ color: isOverload ? '#ef4444' : '#000', fontWeight: 'bold', fontSize: '14px' }}>
+                            <span style={{ color: isOverload ? '#ef4444' : '#0f203d', fontWeight: 'bold', fontSize: '14px' }}>
                               {faculty.assignedHours.toFixed(1)} h
                             </span>
                           </td>
                           <td style={{ padding: '16px 8px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                              <span style={{ fontWeight: 'bold', color: isOverload ? '#ef4444' : '#000' }}>{((faculty.assignedHours / faculty.maxHours) * 100).toFixed(1)}%</span>
-                              {isOverload && <span style={{ fontSize: '9px', background: '#ef4444', color: '#fff', padding: '2px 4px', borderRadius: '2px', fontWeight: 'bold' }}>OVERLOAD</span>}
+                              <span style={{ fontWeight: 'bold', color: isOverload ? '#ef4444' : '#0f203d' }}>{((faculty.assignedHours / faculty.maxHours) * 100).toFixed(1)}%</span>
+                              {isOverload && <span style={{ fontSize: '9px', background: '#ef4444', color: '#fff', padding: '2px 4px', borderRadius: '6px', fontWeight: 'bold' }}>OVERLOAD</span>}
                               {!isOverload && <span style={{ fontSize: '10px', color: '#64748b' }}>Max Capacity</span>}
                             </div>
-                            <div className="progress" style={{ width: '100%', height: '4px', background: '#e2e8f0', borderRadius: '2px', overflow: 'hidden' }}>
+                            <div className="progress" style={{ width: '100%', height: '4px', background: '#E5ECF5', borderRadius: '6px', overflow: 'hidden' }}>
                               <div 
                                 style={{ 
                                   width: `${percent}%`, 
@@ -176,12 +176,12 @@ export default function WorkloadPage() {
                     <h2 style={{ fontSize: '20px', margin: '4px 0 2px 0' }}>Dr. K. Chen</h2>
                     <div style={{ fontSize: '10px', color: '#64748b', textTransform: 'uppercase' }}>Artificial Intelligence<br/>Faculty</div>
                   </div>
-                  <div style={{ background: '#ef4444', color: '#fff', fontSize: '10px', fontWeight: 'bold', padding: '4px 8px', textAlign: 'center', borderRadius: '2px' }}>
+                  <div style={{ background: '#ef4444', color: '#fff', fontSize: '10px', fontWeight: 'bold', padding: '4px 8px', textAlign: 'center', borderRadius: '6px' }}>
                     OVERLOAD<br/>ALERT
                   </div>
                 </div>
 
-                <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '4px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #e2e8f0' }}>
+                <div style={{ background: '#ffffff', padding: '12px', borderRadius: '4px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #e2e8f0' }}>
                   <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 'bold' }}>WEEKLY TEACHING<br/>LOAD</div>
                   <div style={{ textAlign: 'right' }}>
                     <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#ef4444' }}>22.0h</span>
@@ -209,7 +209,7 @@ export default function WorkloadPage() {
                       <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#ef4444' }}>8.0h / wk</div>
                     </div>
                     <div style={{ fontSize: '10px', color: '#ef4444' }}>LEC (2h) + LAB (2h) + ...</div>
-                    <div style={{ fontSize: '9px', background: '#ef4444', color: '#fff', padding: '2px 4px', display: 'inline-block', marginTop: '6px', borderRadius: '2px', fontWeight: 'bold' }}>TARGET REASSIGN</div>
+                    <div style={{ fontSize: '9px', background: '#ef4444', color: '#fff', padding: '2px 4px', display: 'inline-block', marginTop: '6px', borderRadius: '6px', fontWeight: 'bold' }}>TARGET REASSIGN</div>
                   </div>
                   <div style={{ border: '1px solid #e2e8f0', borderRadius: '4px', padding: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
@@ -227,7 +227,7 @@ export default function WorkloadPage() {
                   </div>
                 </div>
 
-                <div style={{ background: '#f8fafc', padding: '12px', borderLeft: '4px solid #3b82f6', marginBottom: '16px' }}>
+                <div style={{ background: '#ffffff', padding: '12px', borderLeft: '4px solid #3b82f6', marginBottom: '16px' }}>
                   <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#3b82f6', marginBottom: '4px' }}>♺ RECOMMENDED REBALANCE</div>
                   <div style={{ fontSize: '11px', color: '#334155', lineHeight: 1.4 }}>
                     Transfer <strong>CV301 Tutorial (3.0h)</strong> to Teaching Assistant or <strong>Dr. M. Vance</strong> (currently at 85% load with 3.0h available buffer).<br/><br/>
@@ -235,7 +235,7 @@ export default function WorkloadPage() {
                   </div>
                 </div>
 
-                <button className="btn" style={{ width: '100%', background: '#000', color: '#fff', fontWeight: 'bold', border: 'none', padding: '12px' }}>♺ EXECUTE REBALANCE</button>
+                <button className="btn" style={{ width: '100%', background: '#1677f5', color: '#fff', fontWeight: 'bold', border: 'none', padding: '12px' }}>♺ EXECUTE REBALANCE</button>
                 <button className="btn" style={{ width: '100%', marginTop: '8px', fontSize: '10px' }}>OVERRIDE WITH JUSTIFICATION</button>
               </div>
               
@@ -252,3 +252,6 @@ export default function WorkloadPage() {
     </>
   );
 }
+
+
+
