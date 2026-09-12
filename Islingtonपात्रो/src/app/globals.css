@@ -1,11 +1,11 @@
 :root {
-  --sidebar-width: 300px;
+  --sidebar-width: 258px;
   --sidebar-collapsed-width: 88px;
-  --page-bg: #eef5ff;
-  --ink: #07142e;
-  --muted: #59708d;
-  --card-border: #d8e3f1;
-  --blue: #1d74f5;
+  --page-bg: #f1f7ff;
+  --ink: #0f203d;
+  --muted: #64748b;
+  --card-border: #e2e8f0;
+  --blue: #1677f5;
 }
 
 * {
@@ -21,7 +21,7 @@ body {
 body {
   background: var(--page-bg);
   color: var(--ink);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   overflow-x: hidden;
 }
 
@@ -518,6 +518,407 @@ button {
   font-size: 14px;
 }
 
+.timetable-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.timetable-hero p,
+.modal-header p {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.timetable-hero h1,
+.modal-header h2 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+.timetable-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.timetable-actions select,
+.field-label select,
+.field-label textarea {
+  min-height: 42px;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  color: #10213d;
+  background: #ffffff;
+  outline: none;
+  box-shadow: 0 8px 20px rgba(16, 40, 82, 0.06);
+}
+
+.timetable-actions select {
+  max-width: 240px;
+  padding: 0 12px;
+}
+
+.timetable-actions button,
+.modal-footer button[type="submit"] {
+  min-height: 42px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 16px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #1c7cf4, #1264c8);
+  box-shadow: 0 12px 22px rgba(29, 116, 245, 0.2);
+  cursor: pointer;
+}
+
+.timetable-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.timetable-stat-card {
+  min-width: 0;
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 16px 34px rgba(16, 40, 82, 0.08);
+}
+
+.timetable-stat-card p,
+.timetable-stat-card span {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.timetable-stat-card strong {
+  display: block;
+  margin: 8px 0 5px;
+  color: var(--ink);
+  font-size: 30px;
+  line-height: 1;
+}
+
+.timetable-board {
+  padding: 0;
+  overflow: hidden;
+}
+
+.timetable-board-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px;
+  border-bottom: 1px solid var(--card-border);
+  background:
+    linear-gradient(135deg, rgba(29, 116, 245, 0.12), rgba(255, 255, 255, 0)),
+    #ffffff;
+}
+
+.timetable-board-header h2 {
+  margin: 0 0 6px;
+}
+
+.timetable-board-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.timetable-board-header span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  border-radius: 999px;
+  padding: 0 12px;
+  color: #0e67cb;
+  background: #e8f2ff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.timetable-grid-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.timetable-grid {
+  display: grid;
+  grid-template-columns: 116px repeat(5, minmax(168px, 1fr));
+  min-width: 980px;
+}
+
+.timetable-grid-head {
+  border-bottom: 1px solid var(--card-border);
+  background: #f5f8fc;
+}
+
+.timetable-grid-head > div {
+  padding: 14px 12px;
+  color: #132542;
+  font-size: 14px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.timetable-grid-head > div + div,
+.schedule-cell {
+  border-left: 1px solid #dde8f5;
+}
+
+.timetable-grid-row {
+  border-bottom: 1px solid #e3ebf5;
+}
+
+.timetable-grid-row:last-child {
+  border-bottom: 0;
+}
+
+.time-cell {
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  min-height: 132px;
+  padding: 14px 12px;
+  color: #132542;
+  background: #f7faff;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.time-cell span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.schedule-cell {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 132px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.64);
+}
+
+.session-card {
+  display: grid;
+  width: 100%;
+  gap: 4px;
+  border: 1px solid rgba(20, 52, 92, 0.08);
+  border-radius: 10px;
+  padding: 10px;
+  color: #0d1d35;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.session-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 22px rgba(16, 40, 82, 0.14);
+}
+
+.session-card.blue {
+  background: #d8ecff;
+}
+
+.session-card.green {
+  background: #d9f7e8;
+}
+
+.session-card.violet {
+  background: #e7defd;
+}
+
+.session-card.yellow {
+  background: #fff0c7;
+}
+
+.session-card.rose {
+  background: #ffe0e6;
+}
+
+.session-card.has-conflict {
+  border-color: #ef4444;
+  box-shadow: inset 3px 0 0 #ef4444;
+}
+
+.session-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.session-card strong {
+  font-size: 14px;
+}
+
+.session-card em {
+  border-radius: 999px;
+  padding: 3px 8px;
+  color: #244469;
+  background: rgba(255, 255, 255, 0.54);
+  font-size: 11px;
+  font-style: normal;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.session-card span {
+  color: #294663;
+  font-size: 12px;
+}
+
+.session-card b {
+  color: #b91c1c;
+  font-size: 12px;
+}
+
+.toast-stack {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 60;
+  display: grid;
+  gap: 10px;
+  width: min(360px, calc(100vw - 32px));
+}
+
+.toast {
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 13px 15px;
+  background: #ffffff;
+  box-shadow: 0 18px 36px rgba(16, 40, 82, 0.16);
+  font-size: 14px;
+}
+
+.toast.success {
+  border-color: #b8efd4;
+  color: #0f6b3c;
+  background: #ecfdf5;
+}
+
+.toast.error {
+  border-color: #fecaca;
+  color: #9f1239;
+  background: #fff1f2;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(5, 14, 32, 0.46);
+}
+
+.session-modal {
+  width: min(720px, 100%);
+  max-height: calc(100vh - 36px);
+  overflow-y: auto;
+  border-radius: 18px;
+  padding: 22px;
+  background: #ffffff;
+  box-shadow: 0 28px 70px rgba(5, 14, 32, 0.28);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.modal-header button,
+.modal-footer button:first-child {
+  min-height: 38px;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 0 12px;
+  color: #294663;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.field-label {
+  display: grid;
+  gap: 7px;
+  color: #294663;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.field-label select,
+.field-label textarea {
+  width: 100%;
+  padding: 0 12px;
+}
+
+.field-label textarea {
+  min-height: 92px;
+  padding-block: 10px;
+  resize: vertical;
+}
+
+.section-picker {
+  margin: 18px 0 0;
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.section-picker legend {
+  padding: 0 4px;
+  color: #294663;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.section-picker div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.section-picker label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #294663;
+  font-size: 14px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
 .mobile-menu-button,
 .sidebar-scrim {
   display: none;
@@ -525,7 +926,8 @@ button {
 
 @media (max-width: 1120px) {
   .stats-grid,
-  .dashboard-grid {
+  .dashboard-grid,
+  .timetable-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -578,11 +980,29 @@ button {
 
   .dashboard-header,
   .stats-grid,
-  .dashboard-grid {
+  .dashboard-grid,
+  .timetable-summary,
+  .modal-grid,
+  .section-picker div {
     grid-template-columns: 1fr;
   }
 
   .dashboard-header {
     display: grid;
+  }
+
+  .timetable-hero,
+  .timetable-board-header {
+    display: grid;
+  }
+
+  .timetable-actions {
+    justify-content: stretch;
+  }
+
+  .timetable-actions select,
+  .timetable-actions button {
+    width: 100%;
+    max-width: none;
   }
 }
