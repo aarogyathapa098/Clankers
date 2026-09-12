@@ -1,7 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { AcademicSidebar } from "@/components/layout/AcademicSidebar";
-<<<<<<< HEAD
 
 // --- Outline SVG Icons ---
 function SearchIcon({ size = 16, color = "currentColor" }: { size?: number; color?: string }) {
@@ -108,7 +108,36 @@ function GridIcon({ size = 14, color = "#64748b" }: { size?: number; color?: str
   );
 }
 
-// --- Data ---
+// --- Types ---
+type DashboardStats = {
+  sessions_today: number;
+  total_rooms: number;
+  available_rooms: number;
+  active_conflicts: number;
+  total_lecturers: number;
+  total_modules: number;
+};
+
+type ConflictRecord = {
+  id?: string;
+  conflict_id: string;
+  conflict_type: string;
+  severity: string;
+  description: string;
+  conflict_date: string;
+  is_resolved: boolean;
+};
+
+type LecturerRecord = {
+  lecturer_id: string;
+  first_name: string;
+  last_name: string;
+  max_weekly_hours: number;
+  assigned_hours: number;
+  department: string;
+};
+
+// --- Static Timetable Data (fallback until sessions API has real data) ---
 const timeSlots = ["08:00", "09:30", "11:00", "12:30", "14:00", "15:30", "17:00"];
 const days = [
   { key: "mon", label: "Mon 13" },
@@ -171,60 +200,124 @@ function getBlockStyle(type: ScheduleCell["type"]) {
   }
 }
 
-const conflicts = [
-  {
-    type: "Faculty clash",
-    desc: "Dr. Smith assigned to 2 classes",
-    code: "AI401",
-    time: "Tue 11:00 – 12:30",
-    severity: "red",
-  },
-  {
-    type: "Room capacity issue",
-    desc: "12 students over capacity",
-    code: "SE302",
-    time: "Hall A\nWed 09:30 – 11:00",
-    severity: "yellow",
-  },
-  {
-    type: "Room unavailable",
-    desc: "Projector not available",
-    code: "DB204",
-    time: "Room 501\nThu 14:00 – 15:30",
-    severity: "yellow",
-  },
-  {
-    type: "Cohort clash",
-    desc: "Group A has overlapping classes",
-    code: "WT201",
-    time: "Mon 09:30 – 15:30",
-    severity: "red",
-  },
+// --- Fallback data ---
+const fallbackConflicts = [
+  { type: "Faculty clash", desc: "Dr. Smith assigned to 2 classes", code: "AI401", time: "Tue 11:00 – 12:30", severity: "red" },
+  { type: "Room capacity issue", desc: "12 students over capacity", code: "SE302", time: "Hall A\nWed 09:30 – 11:00", severity: "yellow" },
+  { type: "Room unavailable", desc: "Projector not available", code: "DB204", time: "Room 501\nThu 14:00 – 15:30", severity: "yellow" },
+  { type: "Cohort clash", desc: "Group A has overlapping classes", code: "WT201", time: "Mon 09:30 – 15:30", severity: "red" },
 ];
-
-const facultyWorkload = [
-  { faculty: "Dr. Smith", assigned: 16, max: 20, status: "Normal", color: "#22c55e" },
-  { faculty: "Prof. Lee", assigned: 18, max: 20, status: "Near Limit", color: "#f59e0b" },
-  { faculty: "Dr. Kumar", assigned: 22, max: 20, status: "Overload", color: "#ef4444" },
-  { faculty: "Dr. Chen", assigned: 10, max: 20, status: "Normal", color: "#22c55e" },
-];
-
-const recentAssignments = [
-  { module: "CS205", faculty: "Dr. Smith", cohort: "Group A", hours: 3 },
-  { module: "AI301", faculty: "Prof. Lee", cohort: "Group B", hours: 4 },
-  { module: "DB204", faculty: "Dr. Kumar", cohort: "Group A", hours: 3 },
-  { module: "SE302", faculty: "Dr. Chen", cohort: "Group C", hours: 4 },
-];
-=======
-import { RoleDashboard } from "@/components/dashboard/RoleDashboard";
->>>>>>> 17a6d4300594e8ace2063ac6d94e04fc6948af43
 
 export default function DashboardPage() {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [conflicts, setConflicts] = useState<ConflictRecord[]>([]);
+  const [lecturers, setLecturers] = useState<LecturerRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  async function handleResolveConflict(conflictId: string) {
+    try {
+      const res = await fetch("/api/conflicts/resolve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conflictId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setConflicts((prev) => prev.filter((c) => (c.conflict_id || c.id) !== conflictId));
+        if (stats) {
+          setStats({ ...stats, active_conflicts: Math.max(0, stats.active_conflicts - 1) });
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [dashRes, conflictRes, lecturerRes] = await Promise.allSettled([
+          fetch("/api/dashboard").then((r) => r.json()),
+          fetch("/api/conflicts").then((r) => r.json()),
+          fetch("/api/lecturers").then((r) => r.json()),
+        ]);
+
+        if (dashRes.status === "fulfilled" && dashRes.value.success) {
+          setStats(dashRes.value.data);
+        }
+        if (conflictRes.status === "fulfilled" && conflictRes.value.success) {
+          setConflicts(conflictRes.value.data ?? []);
+        }
+        if (lecturerRes.status === "fulfilled" && lecturerRes.value.success) {
+          setLecturers(lecturerRes.value.data ?? []);
+        }
+      } catch {
+        // Silently use fallback data
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  const today = new Date();
+  const dateStr = today.toLocaleDateString("en-US", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
+  // Derive display values
+  const sessionsToday = stats?.sessions_today ?? 128;
+  const totalRooms = stats?.total_rooms ?? 42;
+  const availableRooms = stats?.available_rooms ?? 14;
+  const activeConflicts = stats?.active_conflicts ?? 7;
+
+  // Faculty workload from API or fallback
+  const facultyWorkload = lecturers.length > 0
+    ? lecturers.map((l) => {
+        const pct = l.max_weekly_hours > 0 ? (l.assigned_hours / l.max_weekly_hours) * 100 : 0;
+        const status = pct > 100 ? "Overload" : pct >= 80 ? "Near Limit" : "Normal";
+        const color = pct > 100 ? "#ef4444" : pct >= 80 ? "#f59e0b" : "#22c55e";
+        return {
+          faculty: `${l.first_name} ${l.last_name}`,
+          assigned: Math.round(l.assigned_hours),
+          max: l.max_weekly_hours,
+          status,
+          color,
+        };
+      })
+    : [
+        { faculty: "Dr. Smith", assigned: 16, max: 20, status: "Normal", color: "#22c55e" },
+        { faculty: "Prof. Lee", assigned: 18, max: 20, status: "Near Limit", color: "#f59e0b" },
+        { faculty: "Dr. Kumar", assigned: 22, max: 20, status: "Overload", color: "#ef4444" },
+        { faculty: "Dr. Chen", assigned: 10, max: 20, status: "Normal", color: "#22c55e" },
+      ];
+
+  // Map API conflicts to display format, or use fallback
+  const displayConflicts = conflicts.length > 0
+    ? conflicts.filter((c) => !c.is_resolved).slice(0, 4).map((c: any) => ({
+        id: c.conflict_id || c.id || "conf-1",
+        type: (c.conflict_type || "CLASH").replace("_", " "),
+        desc: c.description,
+        code: c.conflict_type,
+        time: c.conflict_date,
+        severity: c.severity === "critical" ? "red" : "yellow",
+      }))
+    : fallbackConflicts.map((fc, i) => ({ ...fc, id: `fallback-${i}` }));
+
+  const recentAssignments = [
+    { module: "CS205", faculty: "Dr. Smith", cohort: "Group A", hours: 3 },
+    { module: "AI301", faculty: "Prof. Lee", cohort: "Group B", hours: 4 },
+    { module: "DB204", faculty: "Dr. Kumar", cohort: "Group A", hours: 3 },
+    { module: "SE302", faculty: "Dr. Chen", cohort: "Group C", hours: 4 },
+  ];
+
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "#F1F7FF", display: "flex" }}>
       {/* Sidebar */}
       <AcademicSidebar />
-<<<<<<< HEAD
 
       {/* Main Area */}
       <div style={{ marginLeft: "258px", flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
@@ -282,18 +375,20 @@ export default function DashboardPage() {
             {/* Bell icon */}
             <div style={{ position: "relative", display: "flex", alignItems: "center", cursor: "pointer" }}>
               <BellIcon size={20} color="#1E293B" />
-              <span
-                style={{
-                  position: "absolute",
-                  top: "0px",
-                  right: "-1px",
-                  width: "7.5px",
-                  height: "7.5px",
-                  backgroundColor: "#EF4444",
-                  borderRadius: "50%",
-                  border: "1.5px solid #FFFFFF",
-                }}
-              />
+              {activeConflicts > 0 && (
+                <span
+                  style={{
+                    position: "absolute",
+                    top: "0px",
+                    right: "-1px",
+                    width: "7.5px",
+                    height: "7.5px",
+                    backgroundColor: "#EF4444",
+                    borderRadius: "50%",
+                    border: "1.5px solid #FFFFFF",
+                  }}
+                />
+              )}
             </div>
 
             {/* Profile */}
@@ -325,12 +420,18 @@ export default function DashboardPage() {
           {/* Greeting */}
           <div style={{ marginBottom: "18px" }}>
             <p style={{ margin: "0 0 3px 0", fontSize: "12px", fontWeight: 500, color: "#64748B" }}>
-              Mon, 14 Jan 2025
+              {dateStr}
             </p>
             <h1 style={{ margin: 0, fontSize: "20px", fontWeight: 700, color: "#0F203D", letterSpacing: "-0.2px" }}>
-              Here’s today’s planning overview.
+              Here&apos;s today&apos;s planning overview.
             </h1>
           </div>
+
+          {loading && (
+            <div style={{ padding: "12px 0", fontSize: "13px", color: "#64748B" }}>
+              Loading dashboard data...
+            </div>
+          )}
 
           {/* 4 KPI Cards */}
           <section
@@ -341,304 +442,88 @@ export default function DashboardPage() {
               marginBottom: "18px",
             }}
           >
-            {/* Card 1 */}
-            <div
-              style={{
-                backgroundColor: "#FFFFFF",
-                borderRadius: "9px",
-                border: "1px solid #E2E8F0",
-                boxShadow: "0 1px 3px rgba(15, 32, 61, 0.03)",
-                padding: "16px 18px",
-                display: "flex",
-                alignItems: "center",
-                gap: "14px",
-              }}
-            >
-              <div
-                style={{
-                  width: "52px",
-                  height: "52px",
-                  borderRadius: "10px",
-                  backgroundColor: "#EBF3FF",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
+            {/* Card 1: Sessions Today */}
+            <div style={{ backgroundColor: "#FFFFFF", borderRadius: "9px", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(15, 32, 61, 0.03)", padding: "16px 18px", display: "flex", alignItems: "center", gap: "14px" }}>
+              <div style={{ width: "52px", height: "52px", borderRadius: "10px", backgroundColor: "#EBF3FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <BookIcon size={24} color="#1677F5" />
               </div>
               <div>
-                <p style={{ margin: "0 0 2px 0", fontSize: "12.5px", fontWeight: 600, color: "#0F203D" }}>
-                  Scheduled Classes Today
-                </p>
-                <p style={{ margin: "0 0 2px 0", fontSize: "25px", fontWeight: 800, color: "#0F203D", lineHeight: 1.15 }}>
-                  128
-                </p>
-                <p style={{ margin: 0, fontSize: "11.5px", color: "#64748B" }}>
-                  <span style={{ color: "#16A34A", fontWeight: 600 }}>↑ 12%</span> vs last week
-                </p>
+                <p style={{ margin: "0 0 2px 0", fontSize: "12.5px", fontWeight: 600, color: "#0F203D" }}>Scheduled Classes Today</p>
+                <p style={{ margin: "0 0 2px 0", fontSize: "25px", fontWeight: 800, color: "#0F203D", lineHeight: 1.15 }}>{sessionsToday}</p>
+                <p style={{ margin: 0, fontSize: "11.5px", color: "#64748B" }}>Across all cohorts</p>
               </div>
             </div>
 
-            {/* Card 2 */}
-            <div
-              style={{
-                backgroundColor: "#FFFFFF",
-                borderRadius: "9px",
-                border: "1px solid #E2E8F0",
-                boxShadow: "0 1px 3px rgba(15, 32, 61, 0.03)",
-                padding: "16px 18px",
-                display: "flex",
-                alignItems: "center",
-                gap: "14px",
-              }}
-            >
-              <div
-                style={{
-                  width: "52px",
-                  height: "52px",
-                  borderRadius: "10px",
-                  backgroundColor: "#EBF3FF",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
+            {/* Card 2: Total Rooms */}
+            <div style={{ backgroundColor: "#FFFFFF", borderRadius: "9px", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(15, 32, 61, 0.03)", padding: "16px 18px", display: "flex", alignItems: "center", gap: "14px" }}>
+              <div style={{ width: "52px", height: "52px", borderRadius: "10px", backgroundColor: "#EBF3FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <BuildingIcon size={24} color="#1677F5" />
               </div>
               <div>
-                <p style={{ margin: "0 0 2px 0", fontSize: "12.5px", fontWeight: 600, color: "#0F203D" }}>
-                  Total Rooms
-                </p>
-                <p style={{ margin: "0 0 2px 0", fontSize: "25px", fontWeight: 800, color: "#0F203D", lineHeight: 1.15 }}>
-                  42
-                </p>
+                <p style={{ margin: "0 0 2px 0", fontSize: "12.5px", fontWeight: 600, color: "#0F203D" }}>Total Rooms</p>
+                <p style={{ margin: "0 0 2px 0", fontSize: "25px", fontWeight: 800, color: "#0F203D", lineHeight: 1.15 }}>{totalRooms}</p>
                 <p style={{ margin: 0, fontSize: "11.5px", color: "#64748B" }}>Across all venues</p>
               </div>
             </div>
 
-            {/* Card 3 */}
-            <div
-              style={{
-                backgroundColor: "#FFFFFF",
-                borderRadius: "9px",
-                border: "1px solid #E2E8F0",
-                boxShadow: "0 1px 3px rgba(15, 32, 61, 0.03)",
-                padding: "16px 18px",
-                display: "flex",
-                alignItems: "center",
-                gap: "14px",
-              }}
-            >
-              <div
-                style={{
-                  width: "52px",
-                  height: "52px",
-                  borderRadius: "10px",
-                  backgroundColor: "#EBF3FF",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
+            {/* Card 3: Available Rooms */}
+            <div style={{ backgroundColor: "#FFFFFF", borderRadius: "9px", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(15, 32, 61, 0.03)", padding: "16px 18px", display: "flex", alignItems: "center", gap: "14px" }}>
+              <div style={{ width: "52px", height: "52px", borderRadius: "10px", backgroundColor: "#EBF3FF", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <DoorIcon size={24} color="#1677F5" />
               </div>
               <div>
-                <p style={{ margin: "0 0 2px 0", fontSize: "12.5px", fontWeight: 600, color: "#0F203D" }}>
-                  Available Rooms
-                </p>
-                <p style={{ margin: "0 0 2px 0", fontSize: "25px", fontWeight: 800, color: "#0F203D", lineHeight: 1.15 }}>
-                  14 / 42
-                </p>
-                <p style={{ margin: 0, fontSize: "11.5px", color: "#64748B" }}>
-                  <span style={{ color: "#16A34A", fontWeight: 600 }}>↑ 17%</span> vs last week
-                </p>
+                <p style={{ margin: "0 0 2px 0", fontSize: "12.5px", fontWeight: 600, color: "#0F203D" }}>Available Rooms</p>
+                <p style={{ margin: "0 0 2px 0", fontSize: "25px", fontWeight: 800, color: "#0F203D", lineHeight: 1.15 }}>{availableRooms} / {totalRooms}</p>
+                <p style={{ margin: 0, fontSize: "11.5px", color: "#64748B" }}>Currently available</p>
               </div>
             </div>
 
-            {/* Card 4 */}
-            <div
-              style={{
-                backgroundColor: "#FFFFFF",
-                borderRadius: "9px",
-                border: "1px solid #E2E8F0",
-                boxShadow: "0 1px 3px rgba(15, 32, 61, 0.03)",
-                padding: "16px 18px",
-                display: "flex",
-                alignItems: "center",
-                gap: "14px",
-              }}
-            >
-              <div
-                style={{
-                  width: "52px",
-                  height: "52px",
-                  borderRadius: "10px",
-                  backgroundColor: "#FEECEC",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                }}
-              >
+            {/* Card 4: Active Clashes */}
+            <div style={{ backgroundColor: "#FFFFFF", borderRadius: "9px", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(15, 32, 61, 0.03)", padding: "16px 18px", display: "flex", alignItems: "center", gap: "14px" }}>
+              <div style={{ width: "52px", height: "52px", borderRadius: "10px", backgroundColor: "#FEECEC", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <AlertIcon size={24} color="#EF4444" />
               </div>
               <div>
-                <p style={{ margin: "0 0 2px 0", fontSize: "12.5px", fontWeight: 600, color: "#0F203D" }}>
-                  Active Clashes
-                </p>
-                <p style={{ margin: "0 0 2px 0", fontSize: "25px", fontWeight: 800, color: "#0F203D", lineHeight: 1.15 }}>
-                  7
-                </p>
+                <p style={{ margin: "0 0 2px 0", fontSize: "12.5px", fontWeight: 600, color: "#0F203D" }}>Active Clashes</p>
+                <p style={{ margin: "0 0 2px 0", fontSize: "25px", fontWeight: 800, color: "#0F203D", lineHeight: 1.15 }}>{activeConflicts}</p>
                 <p style={{ margin: 0, fontSize: "11.5px", color: "#64748B" }}>
-                  <span style={{ color: "#EF4444", fontWeight: 600 }}>↑ 3</span> needs attention
+                  {activeConflicts > 0 ? <span style={{ color: "#EF4444", fontWeight: 600 }}>Needs attention</span> : "All clear"}
                 </p>
               </div>
             </div>
           </section>
 
-          {/* Main 2-Column Split: Left (Timetable & Workload) | Right (Conflicts & Quick Lookups) */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "minmax(0, 59.5%) minmax(0, 40.5%)",
-              gap: "16px",
-              alignItems: "start",
-            }}
-          >
+          {/* Main 2-Column Split */}
+          <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 59.5%) minmax(0, 40.5%)", gap: "16px", alignItems: "start" }}>
             {/* Left Column */}
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               {/* Weekly Timetable Card */}
-              <div
-                style={{
-                  backgroundColor: "#FFFFFF",
-                  borderRadius: "9px",
-                  border: "1px solid #E2E8F0",
-                  boxShadow: "0 1px 3px rgba(15, 32, 61, 0.03)",
-                  padding: "16px",
-                  boxSizing: "border-box",
-                }}
-              >
-                {/* Header */}
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "14px",
-                  }}
-                >
+              <div style={{ backgroundColor: "#FFFFFF", borderRadius: "9px", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(15, 32, 61, 0.03)", padding: "16px", boxSizing: "border-box" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <CalendarIcon size={18} color="#1677F5" />
-                    <h2 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#0F203D" }}>
-                      Weekly Timetable
-                    </h2>
+                    <h2 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#0F203D" }}>Weekly Timetable</h2>
                   </div>
-
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    {/* Day / Week / Month switch */}
-                    <div
-                      style={{
-                        backgroundColor: "#F1F5F9",
-                        borderRadius: "6px",
-                        padding: "2px",
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                    >
-                      <button
-                        type="button"
-                        style={{
-                          border: "none",
-                          backgroundColor: "transparent",
-                          color: "#64748B",
-                          fontSize: "11.5px",
-                          fontWeight: 500,
-                          padding: "4px 11px",
-                          borderRadius: "4px",
-                          cursor: "pointer",
-                        }}
-                      >
-                        Day
-                      </button>
-                      <button
-                        type="button"
-                        style={{
-                          border: "none",
-                          backgroundColor: "#1677F5",
-                          color: "#FFFFFF",
-                          fontSize: "11.5px",
-                          fontWeight: 600,
-                          padding: "4px 13px",
-                          borderRadius: "4px",
-                          cursor: "pointer",
-                        }}
-                      >
-                        Week
-                      </button>
-                      <button
-                        type="button"
-                        style={{
-                          border: "none",
-                          backgroundColor: "transparent",
-                          color: "#64748B",
-                          fontSize: "11.5px",
-                          fontWeight: 500,
-                          padding: "4px 11px",
-                          borderRadius: "4px",
-                          cursor: "pointer",
-                        }}
-                      >
-                        Month
-                      </button>
+                    <div style={{ backgroundColor: "#F1F5F9", borderRadius: "6px", padding: "2px", display: "flex", alignItems: "center" }}>
+                      <button type="button" style={{ border: "none", backgroundColor: "transparent", color: "#64748B", fontSize: "11.5px", fontWeight: 500, padding: "4px 11px", borderRadius: "4px", cursor: "pointer" }}>Day</button>
+                      <button type="button" style={{ border: "none", backgroundColor: "#1677F5", color: "#FFFFFF", fontSize: "11.5px", fontWeight: 600, padding: "4px 13px", borderRadius: "4px", cursor: "pointer" }}>Week</button>
+                      <button type="button" style={{ border: "none", backgroundColor: "transparent", color: "#64748B", fontSize: "11.5px", fontWeight: 500, padding: "4px 11px", borderRadius: "4px", cursor: "pointer" }}>Month</button>
                     </div>
-
-                    {/* Small grid button */}
-                    <div
-                      style={{
-                        width: "26px",
-                        height: "26px",
-                        borderRadius: "5px",
-                        border: "1px solid #E2E8F0",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        cursor: "pointer",
-                        backgroundColor: "#FFFFFF",
-                      }}
-                    >
+                    <div style={{ width: "26px", height: "26px", borderRadius: "5px", border: "1px solid #E2E8F0", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", backgroundColor: "#FFFFFF" }}>
                       <GridIcon size={13} color="#64748B" />
                     </div>
                   </div>
                 </div>
 
                 {/* Grid Table */}
-                <div
-                  style={{
-                    border: "1px solid #E8EEF5",
-                    borderRadius: "7px",
-                    overflow: "hidden",
-                  }}
-                >
+                <div style={{ border: "1px solid #E8EEF5", borderRadius: "7px", overflow: "hidden" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
                     <thead>
                       <tr style={{ backgroundColor: "#F8FAFD", height: "32px" }}>
                         <th style={{ width: "62px" }}></th>
                         {days.map((day) => (
-                          <th
-                            key={day.key}
-                            style={{
-                              borderLeft: "1px solid #E8EEF5",
-                              fontSize: "11.5px",
-                              fontWeight: 700,
-                              color: "#0F203D",
-                              textAlign: "center",
-                              padding: "6px 0",
-                            }}
-                          >
+                          <th key={day.key} style={{ borderLeft: "1px solid #E8EEF5", fontSize: "11.5px", fontWeight: 700, color: "#0F203D", textAlign: "center", padding: "6px 0" }}>
                             {day.label}
                           </th>
                         ))}
@@ -647,74 +532,21 @@ export default function DashboardPage() {
                     <tbody>
                       {timeSlots.map((time) => (
                         <tr key={time} style={{ borderTop: "1px solid #E8EEF5", height: "52px" }}>
-                          <td
-                            style={{
-                              fontSize: "11px",
-                              fontWeight: 600,
-                              color: "#64748B",
-                              textAlign: "center",
-                              verticalAlign: "middle",
-                              padding: "4px",
-                              backgroundColor: "#FFFFFF",
-                            }}
-                          >
+                          <td style={{ fontSize: "11px", fontWeight: 600, color: "#64748B", textAlign: "center", verticalAlign: "middle", padding: "4px", backgroundColor: "#FFFFFF" }}>
                             {time}
                           </td>
                           {days.map((day) => {
                             const cell = timetableData[time]?.[day.key];
                             if (!cell) {
-                              return (
-                                <td
-                                  key={day.key}
-                                  style={{
-                                    borderLeft: "1px solid #E8EEF5",
-                                    padding: "3px 4px",
-                                    backgroundColor: "#FFFFFF",
-                                  }}
-                                />
-                              );
+                              return <td key={day.key} style={{ borderLeft: "1px solid #E8EEF5", padding: "3px 4px", backgroundColor: "#FFFFFF" }} />;
                             }
-
                             const st = getBlockStyle(cell.type);
                             return (
-                              <td
-                                key={day.key}
-                                style={{
-                                  borderLeft: "1px solid #E8EEF5",
-                                  padding: "3px 4px",
-                                  backgroundColor: "#FFFFFF",
-                                  verticalAlign: "middle",
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    backgroundColor: st.bg,
-                                    border: `1px solid ${st.border}`,
-                                    borderRadius: "6px",
-                                    padding: "4px 6px",
-                                    height: "100%",
-                                    boxSizing: "border-box",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    justifyContent: "center",
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      fontSize: "11px",
-                                      fontWeight: 700,
-                                      color: st.text,
-                                      lineHeight: 1.2,
-                                    }}
-                                  >
-                                    {cell.code}
-                                  </div>
-                                  <div style={{ fontSize: "9.5px", color: "#475569", lineHeight: 1.25 }}>
-                                    {cell.group}
-                                  </div>
-                                  <div style={{ fontSize: "9.5px", color: "#475569", lineHeight: 1.25 }}>
-                                    {cell.room}
-                                  </div>
+                              <td key={day.key} style={{ borderLeft: "1px solid #E8EEF5", padding: "3px 4px", backgroundColor: "#FFFFFF", verticalAlign: "middle" }}>
+                                <div style={{ backgroundColor: st.bg, border: `1px solid ${st.border}`, borderRadius: "6px", padding: "4px 6px", height: "100%", boxSizing: "border-box", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                                  <div style={{ fontSize: "11px", fontWeight: 700, color: st.text, lineHeight: 1.2 }}>{cell.code}</div>
+                                  <div style={{ fontSize: "9.5px", color: "#475569", lineHeight: 1.25 }}>{cell.group}</div>
+                                  <div style={{ fontSize: "9.5px", color: "#475569", lineHeight: 1.25 }}>{cell.room}</div>
                                 </div>
                               </td>
                             );
@@ -726,46 +558,17 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Lower Left Two Cards: Faculty Workload & Recent Assignments */}
+              {/* Lower Left Two Cards */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
                 {/* Faculty Workload */}
-                <div
-                  style={{
-                    backgroundColor: "#FFFFFF",
-                    borderRadius: "9px",
-                    border: "1px solid #E2E8F0",
-                    boxShadow: "0 1px 3px rgba(15, 32, 61, 0.03)",
-                    padding: "16px",
-                    boxSizing: "border-box",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: "12px",
-                    }}
-                  >
+                <div style={{ backgroundColor: "#FFFFFF", borderRadius: "9px", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(15, 32, 61, 0.03)", padding: "16px", boxSizing: "border-box" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
                       <UserIcon size={16} color="#1677F5" />
-                      <h3 style={{ margin: 0, fontSize: "14px", fontWeight: 700, color: "#0F203D" }}>
-                        Faculty Workload
-                      </h3>
+                      <h3 style={{ margin: 0, fontSize: "14px", fontWeight: 700, color: "#0F203D" }}>Faculty Workload</h3>
                     </div>
-                    <a
-                      href="/workload"
-                      style={{
-                        color: "#1677F5",
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        textDecoration: "none",
-                      }}
-                    >
-                      View All →
-                    </a>
+                    <a href="/workload" style={{ color: "#1677F5", fontSize: "11px", fontWeight: 600, textDecoration: "none" }}>View All →</a>
                   </div>
-
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11.5px" }}>
                     <thead>
                       <tr style={{ color: "#64748B", borderBottom: "1px solid #E8EEF5", textAlign: "left" }}>
@@ -776,34 +579,15 @@ export default function DashboardPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {facultyWorkload.map((fw) => (
+                      {facultyWorkload.slice(0, 4).map((fw) => (
                         <tr key={fw.faculty} style={{ borderBottom: "1px solid #F4F7FA" }}>
                           <td style={{ padding: "8px 0", fontWeight: 600, color: "#0F203D" }}>{fw.faculty}</td>
                           <td style={{ padding: "8px 0", color: "#334155" }}>{fw.assigned}</td>
                           <td style={{ padding: "8px 0", color: "#334155" }}>{fw.max}</td>
                           <td style={{ padding: "8px 0" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                              <span
-                                style={{
-                                  width: "6px",
-                                  height: "6px",
-                                  borderRadius: "50%",
-                                  backgroundColor: fw.color,
-                                  display: "inline-block",
-                                }}
-                              />
-                              <span
-                                style={{
-                                  color:
-                                    fw.status === "Normal"
-                                      ? "#16A34A"
-                                      : fw.status === "Near Limit"
-                                      ? "#D97706"
-                                      : "#DC2626",
-                                  fontSize: "11px",
-                                  fontWeight: 500,
-                                }}
-                              >
+                              <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: fw.color, display: "inline-block" }} />
+                              <span style={{ color: fw.status === "Normal" ? "#16A34A" : fw.status === "Near Limit" ? "#D97706" : "#DC2626", fontSize: "11px", fontWeight: 500 }}>
                                 {fw.status}
                               </span>
                             </div>
@@ -815,43 +599,14 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Recent Assignments */}
-                <div
-                  style={{
-                    backgroundColor: "#FFFFFF",
-                    borderRadius: "9px",
-                    border: "1px solid #E2E8F0",
-                    boxShadow: "0 1px 3px rgba(15, 32, 61, 0.03)",
-                    padding: "16px",
-                    boxSizing: "border-box",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: "12px",
-                    }}
-                  >
+                <div style={{ backgroundColor: "#FFFFFF", borderRadius: "9px", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(15, 32, 61, 0.03)", padding: "16px", boxSizing: "border-box" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
                       <BookIcon size={16} color="#1677F5" />
-                      <h3 style={{ margin: 0, fontSize: "14px", fontWeight: 700, color: "#0F203D" }}>
-                        Recent Assignments
-                      </h3>
+                      <h3 style={{ margin: 0, fontSize: "14px", fontWeight: 700, color: "#0F203D" }}>Recent Assignments</h3>
                     </div>
-                    <a
-                      href="/modules"
-                      style={{
-                        color: "#1677F5",
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        textDecoration: "none",
-                      }}
-                    >
-                      View All →
-                    </a>
+                    <a href="/modules" style={{ color: "#1677F5", fontSize: "11px", fontWeight: 600, textDecoration: "none" }}>View All →</a>
                   </div>
-
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11.5px" }}>
                     <thead>
                       <tr style={{ color: "#64748B", borderBottom: "1px solid #E8EEF5", textAlign: "left" }}>
@@ -876,94 +631,45 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Right Column: Conflicts & Quick Lookups */}
+            {/* Right Column */}
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               {/* Scheduling Conflicts Card */}
-              <div
-                style={{
-                  backgroundColor: "#FFFFFF",
-                  borderRadius: "9px",
-                  border: "1px solid #E2E8F0",
-                  boxShadow: "0 1px 3px rgba(15, 32, 61, 0.03)",
-                  padding: "16px 18px",
-                  boxSizing: "border-box",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "14px",
-                  }}
-                >
-                  <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#0F203D" }}>
-                    Scheduling Conflicts
-                  </h2>
-                  <a
-                    href="/dashboard/conflicts"
-                    style={{
-                      color: "#1677F5",
-                      fontSize: "11.5px",
-                      fontWeight: 600,
-                      textDecoration: "none",
-                    }}
-                  >
-                    View All →
-                  </a>
+              <div style={{ backgroundColor: "#FFFFFF", borderRadius: "9px", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(15, 32, 61, 0.03)", padding: "16px 18px", boxSizing: "border-box" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+                  <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#0F203D" }}>Scheduling Conflicts</h2>
+                  <a href="/dashboard/conflicts" style={{ color: "#1677F5", fontSize: "11.5px", fontWeight: 600, textDecoration: "none" }}>View All →</a>
                 </div>
-
                 <div style={{ display: "flex", flexDirection: "column" }}>
-                  {conflicts.map((conf, index) => (
-                    <div
-                      key={conf.type}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "11px 0",
-                        borderBottom: index < conflicts.length - 1 ? "1px solid #F1F5F9" : "none",
-                      }}
-                    >
+                  {displayConflicts.map((conf, index) => (
+                    <div key={`${conf.type}-${index}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 0", borderBottom: index < displayConflicts.length - 1 ? "1px solid #F1F5F9" : "none" }}>
                       <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-                        <div
-                          style={{
-                            width: "7px",
-                            height: "7px",
-                            borderRadius: "50%",
-                            backgroundColor: conf.severity === "red" ? "#EF4444" : "#F59E0B",
-                            marginTop: "4px",
-                            flexShrink: 0,
-                          }}
-                        />
+                        <div style={{ width: "7px", height: "7px", borderRadius: "50%", backgroundColor: conf.severity === "red" ? "#EF4444" : "#F59E0B", marginTop: "4px", flexShrink: 0 }} />
                         <div>
-                          <p style={{ margin: "0 0 2px 0", fontSize: "12px", fontWeight: 700, color: "#0F203D" }}>
-                            {conf.type}
-                          </p>
+                          <p style={{ margin: "0 0 2px 0", fontSize: "12px", fontWeight: 700, color: "#0F203D" }}>{conf.type}</p>
                           <p style={{ margin: 0, fontSize: "11px", color: "#64748B" }}>{conf.desc}</p>
                         </div>
                       </div>
-
                       <div style={{ display: "flex", alignItems: "center", gap: "10px", textAlign: "right" }}>
                         <div>
-                          <p style={{ margin: "0 0 2px 0", fontSize: "12px", fontWeight: 700, color: "#0F203D" }}>
-                            {conf.code}
-                          </p>
-                          <p
-                            style={{
-                              margin: 0,
-                              fontSize: "10.5px",
-                              color: "#64748B",
-                              whiteSpace: "pre-line",
-                              lineHeight: 1.25,
-                            }}
-                          >
-                            {conf.time}
-                          </p>
+                          <p style={{ margin: "0 0 2px 0", fontSize: "12px", fontWeight: 700, color: "#0F203D" }}>{conf.code}</p>
+                          <p style={{ margin: 0, fontSize: "10.5px", color: "#64748B", whiteSpace: "pre-line", lineHeight: 1.25 }}>{conf.time}</p>
                         </div>
-                        <div style={{ display: "flex", alignItems: "center" }}>
-                          <ChevronRight size={13} color="#94A3B8" />
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleResolveConflict(conf.id)}
+                          style={{
+                            fontSize: "11px",
+                            padding: "3px 8px",
+                            borderRadius: "5px",
+                            border: "1px solid #E2E8F0",
+                            backgroundColor: "#F8FAFC",
+                            color: "#1677F5",
+                            cursor: "pointer",
+                            fontWeight: 600,
+                          }}
+                        >
+                          Resolve
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -971,135 +677,49 @@ export default function DashboardPage() {
               </div>
 
               {/* Quick Lookups Card */}
-              <div
-                style={{
-                  backgroundColor: "#FFFFFF",
-                  borderRadius: "9px",
-                  border: "1px solid #E2E8F0",
-                  boxShadow: "0 1px 3px rgba(15, 32, 61, 0.03)",
-                  padding: "16px 18px",
-                  boxSizing: "border-box",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    marginBottom: "14px",
-                  }}
-                >
+              <div style={{ backgroundColor: "#FFFFFF", borderRadius: "9px", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(15, 32, 61, 0.03)", padding: "16px 18px", boxSizing: "border-box" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
                   <SearchIcon size={18} color="#1677F5" />
-                  <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#0F203D" }}>
-                    Quick Lookups
-                  </h2>
+                  <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#0F203D" }}>Quick Lookups</h2>
                 </div>
-
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  {/* Action 1 */}
-                  <a
-                    href="/lookup/rooms"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      backgroundColor: "#F6FAFD",
-                      border: "1px solid #E6EDF5",
-                      borderRadius: "8px",
-                      padding: "11px 14px",
-                      textDecoration: "none",
-                      transition: "background-color 0.15s",
-                    }}
-                  >
+                  <a href="/lookup/rooms" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#F6FAFD", border: "1px solid #E6EDF5", borderRadius: "8px", padding: "11px 14px", textDecoration: "none", transition: "background-color 0.15s" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "11px" }}>
                       <SearchIcon size={17} color="#1677F5" />
                       <span style={{ fontSize: "13px", fontWeight: 700, color: "#0F203D" }}>Find a room</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span style={{ fontSize: "11px", color: "#64748B" }}>
-                        Check availability by time and capacity
-                      </span>
+                      <span style={{ fontSize: "11px", color: "#64748B" }}>Check availability by time and capacity</span>
                       <ChevronRight size={13} color="#1677F5" />
                     </div>
                   </a>
-
-                  {/* Action 2 */}
-                  <a
-                    href="/lookup/faculty"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      backgroundColor: "#F6FAFD",
-                      border: "1px solid #E6EDF5",
-                      borderRadius: "8px",
-                      padding: "11px 14px",
-                      textDecoration: "none",
-                      transition: "background-color 0.15s",
-                    }}
-                  >
+                  <a href="/lookup/faculty" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#F6FAFD", border: "1px solid #E6EDF5", borderRadius: "8px", padding: "11px 14px", textDecoration: "none", transition: "background-color 0.15s" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "11px" }}>
                       <UserIcon size={17} color="#1677F5" />
-                      <span style={{ fontSize: "13px", fontWeight: 700, color: "#0F203D" }}>
-                        View faculty schedule
-                      </span>
+                      <span style={{ fontSize: "13px", fontWeight: 700, color: "#0F203D" }}>View faculty schedule</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                       <span style={{ fontSize: "11px", color: "#64748B" }}>Search any faculty member</span>
                       <ChevronRight size={13} color="#1677F5" />
                     </div>
                   </a>
-
-                  {/* Action 3 */}
-                  <a
-                    href="/lookup/cohort"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      backgroundColor: "#F6FAFD",
-                      border: "1px solid #E6EDF5",
-                      borderRadius: "8px",
-                      padding: "11px 14px",
-                      textDecoration: "none",
-                      transition: "background-color 0.15s",
-                    }}
-                  >
+                  <a href="/lookup/cohort" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#F6FAFD", border: "1px solid #E6EDF5", borderRadius: "8px", padding: "11px 14px", textDecoration: "none", transition: "background-color 0.15s" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "11px" }}>
                       <UsersIcon size={17} color="#1677F5" />
-                      <span style={{ fontSize: "13px", fontWeight: 700, color: "#0F203D" }}>
-                        View cohort schedule
-                      </span>
+                      <span style={{ fontSize: "13px", fontWeight: 700, color: "#0F203D" }}>View cohort schedule</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                       <span style={{ fontSize: "11px", color: "#64748B" }}>Search any cohort</span>
                       <ChevronRight size={13} color="#1677F5" />
                     </div>
                   </a>
-
-                  {/* Action 4 */}
-                  <a
-                    href="/lookup/my-schedule"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      backgroundColor: "#F6FAFD",
-                      border: "1px solid #E6EDF5",
-                      borderRadius: "8px",
-                      padding: "11px 14px",
-                      textDecoration: "none",
-                      transition: "background-color 0.15s",
-                    }}
-                  >
+                  <a href="/lookup/my-schedule" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#F6FAFD", border: "1px solid #E6EDF5", borderRadius: "8px", padding: "11px 14px", textDecoration: "none", transition: "background-color 0.15s" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "11px" }}>
                       <CalendarIcon size={17} color="#1677F5" />
                       <span style={{ fontSize: "13px", fontWeight: 700, color: "#0F203D" }}>My schedule</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span style={{ fontSize: "11px", color: "#64748B" }}>
-                        View your personal timetable
-                      </span>
+                      <span style={{ fontSize: "11px", color: "#64748B" }}>View your personal timetable</span>
                       <ChevronRight size={13} color="#1677F5" />
                     </div>
                   </a>
@@ -1110,13 +730,5 @@ export default function DashboardPage() {
         </main>
       </div>
     </div>
-=======
-      <main className="dashboard-main">
-        <div className="dashboard-content">
-          <RoleDashboard />
-        </div>
-      </main>
-    </>
->>>>>>> 17a6d4300594e8ace2063ac6d94e04fc6948af43
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -63,25 +63,6 @@ const navSections: NavSection[] = [
     children: [
       { label: "Workload", href: "/workload" },
       { label: "Module Assignments", href: "/modules" },
-<<<<<<< HEAD
-=======
-    ],
-  },
-  {
-    label: "Lookups",
-    icon: "lookups",
-    children: [
-      { label: "Faculty Schedule", href: "/lookups/faculty" },
-      { label: "Cohort Schedule", href: "/lookups/cohort" },
-      { label: "Room Search", href: "/lookups/room" },
-    ],
-  },
-  {
-    label: "Analytics",
-    icon: "analytics",
-    children: [
-      { label: "Utilization & Metrics", href: "/analytics/utilization" },
->>>>>>> 17a6d4300594e8ace2063ac6d94e04fc6948af43
     ],
   },
   {
@@ -94,7 +75,13 @@ const navSections: NavSection[] = [
       { label: "Room Search", href: "/lookup/rooms" },
     ],
   },
-  { label: "Analytics", href: "/analytics", icon: "analytics" },
+  {
+    label: "Analytics",
+    icon: "analytics",
+    children: [
+      { label: "Utilization & Metrics", href: "/analytics/utilization" },
+    ],
+  },
 ];
 
 function isActive(pathname: string, href?: string) {
@@ -205,10 +192,7 @@ export function AcademicSidebar() {
     Resources: true,
     Faculty: true,
     Lookups: true,
-<<<<<<< HEAD
-=======
     Analytics: true,
->>>>>>> 17a6d4300594e8ace2063ac6d94e04fc6948af43
   });
 
   return (
@@ -269,7 +253,7 @@ export function AcademicSidebar() {
 
           if (!section.children) {
             const isOverview = section.label === "Overview";
-            const isSelected = isOverview || isCurrentActive;
+            const isSelected = isOverview ? pathname === "/dashboard" : isCurrentActive;
 
             return (
               <Link
