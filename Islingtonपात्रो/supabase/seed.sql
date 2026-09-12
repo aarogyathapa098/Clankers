@@ -222,7 +222,7 @@ VALUES
     'Cloud Computing and Internet of Things',
     '10000000-0000-0000-0000-000000000001',
     15,
-    1,
+    1,~
     120,
     'active'
 );
@@ -236,7 +236,7 @@ INSERT INTO module (
     module_name,
     programme_id,
     credit_hours,
-    weekly_sessions,
+    weekly_sessions,~
     duration_minutes,
     status
 )
