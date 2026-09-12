@@ -17,7 +17,9 @@ type IconName =
   | "alert"
   | "venue"
   | "user"
-  | "module";
+  | "module"
+  | "search"
+  | "chart";
 
 type NavChild = {
   label: string;
@@ -67,6 +69,22 @@ const navSections: NavSection[] = [
     children: [
       { label: "Workload", href: "/workload", icon: "faculty" },
       { label: "Module Assignments", href: "/modules", icon: "module" },
+    ],
+  },
+  {
+    label: "Lookups",
+    icon: "search",
+    children: [
+      { label: "Faculty Schedule", href: "/lookups/faculty", icon: "user" },
+      { label: "Cohort Schedule", href: "/lookups/cohort", icon: "module" },
+      { label: "Room Search", href: "/lookups/room", icon: "room" },
+    ],
+  },
+  {
+    label: "Analytics",
+    icon: "chart",
+    children: [
+      { label: "Utilization & Metrics", href: "/analytics/utilization", icon: "spark" },
     ],
   },
 ];
@@ -169,6 +187,18 @@ function Icon({ name }: { name: IconName }) {
       <svg {...common}>
         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
+      </svg>
+    ),
+    search: (
+      <svg {...common}>
+        <circle cx="11" cy="11" r="8" />
+        <path d="m21 21-4.3-4.3" />
+      </svg>
+    ),
+    chart: (
+      <svg {...common}>
+        <path d="M3 3v18h18" />
+        <path d="m19 9-5 5-4-4-3 3" />
       </svg>
     ),
   };
