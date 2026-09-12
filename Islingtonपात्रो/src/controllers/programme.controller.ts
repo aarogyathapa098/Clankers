@@ -37,7 +37,7 @@ export const getProgramme = async (
         const data = await service.getById(
             "programme",
             "programme_id",
-            req.params.id
+            Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
         );
 
         res.status(200).json({
@@ -93,7 +93,7 @@ export const updateProgramme = async (
         const data = await service.update(
             "programme",
             "programme_id",
-            req.params.id,
+            Array.isArray(req.params.id) ? req.params.id[0] : req.params.id,
             req.body
         );
 
@@ -123,7 +123,7 @@ export const deleteProgramme = async (
         await service.delete(
             "programme",
             "programme_id",
-            req.params.id
+            Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
         );
 
         res.status(200).json({
