@@ -1645,7 +1645,6 @@ button {
     display: grid;
   }
 
-<<<<<<< HEAD
   .timetable-hero,
   .timetable-board-header,
   .resource-page-header,
@@ -1670,7 +1669,8 @@ button {
 
   .day-selector {
     overflow-x: auto;
-=======
+  }
+
   .role-control {
     justify-content: stretch;
   }
@@ -1678,6 +1678,5 @@ button {
   .role-control select,
   .role-control .admin-chip {
     width: 100%;
->>>>>>> 17a6d4300594e8ace2063ac6d94e04fc6948af43
   }
 }
