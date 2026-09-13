@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import {
   TimetableRoom,
   TimetableSection,
@@ -72,6 +72,12 @@ type Recommendation = {
   recommended_slot_id?: string;
 };
 
+type CreateDefaults = {
+  moduleId?: string;
+  roomId?: string;
+  timeslotId?: string;
+};
+
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
 export function TimetablePage() {
@@ -87,8 +93,9 @@ export function TimetablePage() {
   const [selectedTimeslotId, setSelectedTimeslotId] = useState("");
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [createDefaults, setCreateDefaults] = useState<CreateDefaults | null>(null);
+  const handledCreateLink = useRef(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
 
   // Conflict Modal State
   const [conflictState, setConflictState] = useState<{
@@ -177,6 +184,31 @@ export function TimetablePage() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (loading || handledCreateLink.current || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("create") !== "1") return;
+
+    const requestedDay = params.get("day");
+    const requestedStart = params.get("start");
+    const matchingSlot = timeslots.find(
+      (slot) =>
+        (!requestedDay || slot.day_of_week.toUpperCase().startsWith(requestedDay.toUpperCase())) &&
+        (!requestedStart || slot.start_time.startsWith(requestedStart)),
+    );
+    const matchingDay = days.find((day) => requestedDay && day.toUpperCase().startsWith(requestedDay.toUpperCase()));
+
+    setCreateDefaults({
+      moduleId: params.get("moduleId") || undefined,
+      roomId: params.get("roomId") || undefined,
+      timeslotId: matchingSlot?.id,
+    });
+    if (matchingSlot) setSelectedTimeslotId(matchingSlot.id);
+    if (matchingDay) setSelectedDay(matchingDay);
+    setIsCreating(true);
+    handledCreateLink.current = true;
+  }, [loading, timeslots]);
+
   const activeSessions = sessions.filter((session) => session.status?.toLowerCase() !== "cancelled");
   const currentDay = new Date().toLocaleDateString("en-US", { weekday: "long" });
   const selectedTimeslot = timeslots.find((timeslot) => timeslot.id === selectedTimeslotId);
@@ -211,17 +243,19 @@ export function TimetablePage() {
 
   async function handleSaveSession(draftPayload: any) {
     try {
-      const res = await fetch("/api/sessions", {
-        method: "POST",
+      const isEditing = Boolean(draftPayload.id);
+      const res = await fetch(isEditing ? `/api/sessions/${draftPayload.id}` : "/api/sessions", {
+        method: isEditing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(draftPayload),
       });
 
       const json = await res.json();
 
-      if (res.status === 201 && json.success) {
-        pushToast("success", "Timetable session scheduled and validated successfully!");
+      if (res.ok && json.success) {
+        pushToast("success", isEditing ? "Timetable session updated with no conflicts." : "Timetable session scheduled with no conflicts.");
         setIsCreating(false);
+        setCreateDefaults(null);
         setSelectedSession(null);
         setConflictState({ show: false, conflicts: [], alternatives: [], pendingDraft: null });
         // Refresh sessions list
@@ -243,7 +277,11 @@ export function TimetablePage() {
           alternatives: json.alternatives || [],
           pendingDraft: draftPayload,
         });
-        pushToast("warning", "Scheduling clash detected! Review alternatives.");
+        const exactMessage = (json.conflicts ?? [])
+          .map((conflict: ConflictDetails) => conflict.description)
+          .filter(Boolean)
+          .join(" • ");
+        pushToast("warning", exactMessage || json.message || "Scheduling clash detected. The session was not saved.");
       } else {
         pushToast("error", json.message || "Failed to schedule session.");
       }
@@ -290,29 +328,6 @@ export function TimetablePage() {
     }
   }
 
-  async function handleAutoGenerate() {
-    try {
-      setIsGenerating(true);
-      pushToast("info", "Constraint-based timetable generator running...");
-      const res = await fetch("/api/timetable/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ programmeId: "prog-1", semester: "Semester 1" }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        pushToast("success", json.message || "Automated timetable successfully generated!");
-        loadData();
-      } else {
-        pushToast("error", json.message || "Timetable generator failed.");
-      }
-    } catch {
-      pushToast("error", "Failed to run timetable generator.");
-    } finally {
-      setIsGenerating(false);
-    }
-  }
-
   function applyRecommendation(alt: Recommendation) {
     if (!conflictState.pendingDraft) return;
     const updated = {
@@ -338,16 +353,6 @@ export function TimetablePage() {
         </div>
 
         <div className="timetable-actions" aria-label="Timetable controls">
-          <button
-            type="button"
-            className="secondary"
-            disabled={isGenerating}
-            onClick={handleAutoGenerate}
-            style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
-          >
-            {isGenerating ? "Generating..." : "⚡ Auto-Generate Schedule"}
-          </button>
-
           <select value={selectedDay} onChange={(event) => setSelectedDay(event.target.value)}>
             <option>All</option>
             {days.map((day) => (
@@ -363,7 +368,7 @@ export function TimetablePage() {
             ))}
           </select>
 
-          <button type="button" className="primary" onClick={() => setIsCreating(true)}>
+          <button type="button" className="primary" onClick={() => { setCreateDefaults(null); setIsCreating(true); }}>
             + New Session
           </button>
         </div>
@@ -535,6 +540,7 @@ export function TimetablePage() {
         <SessionModal
           onClose={() => {
             setIsCreating(false);
+            setCreateDefaults(null);
             setSelectedSession(null);
           }}
           onSave={saveSession}
@@ -545,6 +551,7 @@ export function TimetablePage() {
           rooms={rooms}
           sections={sections}
           timeslots={timeslots}
+          defaults={createDefaults}
         />
       )}
     </>
@@ -618,8 +625,9 @@ function SessionModal(props: {
   rooms: TimetableRoom[];
   sections: TimetableSection[];
   timeslots: Timeslot[];
+  defaults?: CreateDefaults | null;
 }) {
-  const defaultTimeslot = props.session?.timeslot_id || props.timeslots[0]?.id;
+  const defaultTimeslot = props.session?.timeslot_id || props.defaults?.timeslotId || props.timeslots[0]?.id;
 
   return (
     <div className="modal-backdrop">
@@ -635,7 +643,7 @@ function SessionModal(props: {
         </div>
 
         <div className="modal-grid">
-          <Select label="Module" name="module_id" defaultValue={props.session?.module_id}>
+          <Select label="Module" name="module_id" defaultValue={props.session?.module_id || props.defaults?.moduleId}>
             {props.modules.map((module) => (
               <option key={module.id} value={module.id}>
                 {module.module_code} - {module.module_name}
@@ -651,7 +659,7 @@ function SessionModal(props: {
             ))}
           </Select>
 
-          <Select label="Room" name="room_id" defaultValue={props.session?.room_id}>
+          <Select label="Room" name="room_id" defaultValue={props.session?.room_id || props.defaults?.roomId}>
             {props.rooms.map((room) => (
               <option key={room.id} value={room.id}>
                 {room.room_code} - {room.room_name} ({room.capacity} seats)

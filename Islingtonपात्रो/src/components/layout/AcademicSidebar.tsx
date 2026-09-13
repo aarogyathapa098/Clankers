@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useRole } from "@/components/auth/RoleProvider";
+import { APP_ROLES, ROLE_PROFILES, type AppRole } from "@/lib/roles";
 
 type IconName =
   | "logo"
@@ -20,6 +22,7 @@ type IconName =
 type NavChild = {
   label: string;
   href: string;
+  roles: AppRole[];
 };
 
 type NavSection = {
@@ -27,60 +30,59 @@ type NavSection = {
   href?: string;
   icon: IconName;
   children?: NavChild[];
+  roles: AppRole[];
 };
 
 const navSections: NavSection[] = [
-  { label: "Overview", href: "/dashboard", icon: "overview" },
+  { label: "Overview", href: "/dashboard", icon: "overview", roles: ["ADMIN"] },
+  { label: "Student Dashboard", href: "/student/dashboard", icon: "overview", roles: ["STUDENT"] },
+  { label: "Faculty Dashboard", href: "/faculty/dashboard", icon: "overview", roles: ["FACULTY"] },
+  { label: "SSD Dashboard", href: "/ssd/dashboard", icon: "overview", roles: ["SSD"] },
+  { label: "Timetable", href: "/timetable", icon: "timetable", roles: ["ADMIN"] },
   {
-    label: "Timetable",
+    label: "My Learning",
     icon: "timetable",
     children: [
-      { label: "Master Timetable", href: "/timetable" },
-      { label: "Generate Schedule", href: "/timetable/new" },
-      { label: "Conflicts", href: "/dashboard/conflicts" },
+      { label: "My Timetable", href: "/student/timetable", roles: ["STUDENT"] },
+      { label: "Room Availability", href: "/rooms/availability", roles: ["STUDENT"] },
     ],
+    roles: ["STUDENT"],
   },
   {
-    label: "Examinations",
-    icon: "exam",
+    label: "Teaching",
+    icon: "timetable",
     children: [
-      { label: "Exam Schedule", href: "/examinations" },
-      { label: "Venue Allocation", href: "/examinations/venues" },
-      { label: "Invigilators", href: "/examinations/invigilators" },
+      { label: "Assigned Schedule", href: "/faculty/schedule", roles: ["FACULTY"] },
+      { label: "Room Availability", href: "/rooms/availability", roles: ["FACULTY"] },
     ],
+    roles: ["FACULTY"],
   },
+  { label: "Examinations", href: "/examinations", icon: "exam", roles: ["ADMIN"] },
   {
     label: "Resources",
     icon: "resources",
     children: [
-      { label: "Rooms", href: "/rooms" },
-      { label: "Room Availability", href: "/rooms/availability" },
+      { label: "Rooms", href: "/rooms", roles: ["ADMIN", "SSD"] },
+      { label: "Room Availability", href: "/rooms/availability", roles: ["ADMIN", "SSD"] },
     ],
+    roles: ["ADMIN", "SSD"],
+  },
+  {
+    label: "SSD Services",
+    icon: "resources",
+    children: [
+      { label: "Room Bookings", href: "/ssd/bookings", roles: ["SSD"] },
+    ],
+    roles: ["SSD"],
   },
   {
     label: "Faculty",
     icon: "faculty",
     children: [
-      { label: "Workload", href: "/workload" },
-      { label: "Module Assignments", href: "/modules" },
+      { label: "Workload", href: "/workload", roles: ["ADMIN"] },
+      { label: "Module Assignments", href: "/modules", roles: ["ADMIN"] },
     ],
-  },
-  {
-    label: "Lookups",
-    icon: "lookups",
-    children: [
-      { label: "My Schedule", href: "/lookup/my-schedule" },
-      { label: "Faculty Schedule", href: "/lookup/faculty" },
-      { label: "Cohort Schedule", href: "/lookup/cohort" },
-      { label: "Room Search", href: "/lookup/rooms" },
-    ],
-  },
-  {
-    label: "Analytics",
-    icon: "analytics",
-    children: [
-      { label: "Utilization & Metrics", href: "/analytics/utilization" },
-    ],
+    roles: ["ADMIN"],
   },
 ];
 
@@ -195,14 +197,22 @@ function SidebarIcon({ name }: { name: IconName }) {
 
 export function AcademicSidebar() {
   const pathname = usePathname();
+  const { role, setRole } = useRole();
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    Timetable: true,
-    Examinations: true,
     Resources: true,
     Faculty: true,
-    Lookups: true,
-    Analytics: true,
   });
+  const visibleSections = useMemo(
+    () =>
+      navSections
+        .filter((section) => section.roles.includes(role))
+        .map((section) => ({
+          ...section,
+          children: section.children?.filter((child) => child.roles.includes(role)),
+        })),
+    [role],
+  );
+  const identity = ROLE_PROFILES[role];
 
   return (
     <aside
@@ -254,7 +264,7 @@ export function AcademicSidebar() {
 
       {/* Nav list */}
       <nav style={{ display: "flex", flexDirection: "column", gap: "3px", flex: 1 }}>
-        {navSections.map((section) => {
+        {visibleSections.map((section) => {
           const isCurrentActive =
             isActive(pathname, section.href) ||
             Boolean(section.children?.some((child) => isActive(pathname, child.href)));
@@ -370,6 +380,28 @@ export function AcademicSidebar() {
           );
         })}
 
+        <div className="sidebar-role-card">
+          <div className="sidebar-role-identity">
+            <span>{identity.initials}</span>
+            <div>
+              <strong>{identity.name}</strong>
+              <small>{identity.subtitle}</small>
+            </div>
+          </div>
+          <label htmlFor="workspace-role">View workspace</label>
+          <select
+            id="workspace-role"
+            value={role}
+            onChange={(event) => setRole(event.target.value as AppRole)}
+          >
+            {APP_ROLES.map((item) => (
+              <option key={item} value={item}>
+                {ROLE_PROFILES[item].label}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {/* Divider */}
         <div
           style={{
@@ -380,8 +412,8 @@ export function AcademicSidebar() {
         />
 
         {/* Footer items */}
-        <Link
-          href="/settings"
+        {role === "ADMIN" && <Link
+          href="/admin/roles"
           style={{
             display: "flex",
             alignItems: "center",
@@ -396,26 +428,8 @@ export function AcademicSidebar() {
           }}
         >
           <SidebarIcon name="settings" />
-          <span>Settings</span>
-        </Link>
-        <Link
-          href="/help"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "11px",
-            height: "36px",
-            padding: "0 12px",
-            borderRadius: "6px",
-            color: "#CBDCF7",
-            fontSize: "13.5px",
-            fontWeight: 500,
-            textDecoration: "none",
-          }}
-        >
-          <SidebarIcon name="help" />
-          <span>Help & Support</span>
-        </Link>
+          <span>Roles &amp; Access</span>
+        </Link>}
       </nav>
     </aside>
   );

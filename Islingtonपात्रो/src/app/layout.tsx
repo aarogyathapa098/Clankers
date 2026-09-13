@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { RoleProvider } from "@/components/auth/RoleProvider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,7 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <RoleProvider>{children}</RoleProvider>
+      </body>
     </html>
   );
 }

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
 
-export default function RemovedLookupPage() {
+export default function RemovedConflictCentrePage() {
   notFound();
 }

@@ -31,7 +31,15 @@ export async function PUT(
 
     const res = await dataRepository.updateSession(id, body);
     if (!res.success) {
-      return NextResponse.json({ success: false, message: res.error }, { status: 400 });
+      return NextResponse.json(
+        {
+          success: false,
+          message: res.error,
+          conflicts: res.conflicts,
+          alternatives: res.alternatives,
+        },
+        { status: res.conflicts?.length ? 409 : 400 },
+      );
     }
 
     return NextResponse.json({ success: true, message: "Session updated successfully", data: res.data });
