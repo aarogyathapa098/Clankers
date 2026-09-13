@@ -9,6 +9,8 @@ type Session = {
   lecturer_id: string;
   section_ids: string[];
   status: string;
+  session_type?: string;
+  is_exam?: boolean;
   module?: { module_code?: string; module_name?: string };
   room?: { room_code?: string };
   timeslot?: { day_of_week?: string; start_time?: string; end_time?: string };
@@ -45,13 +47,24 @@ export function RoleHome({ role }: { role: "STUDENT" | "FACULTY" | "SSD" }) {
     Promise.all([
       fetch("/api/sessions").then((response) => response.json()),
       fetch("/api/rooms").then((response) => response.json()),
+      role === "STUDENT"
+        ? fetch("/api/examinations").then((response) => response.json())
+        : Promise.resolve({ data: [] }),
     ])
-      .then(([sessionResult, roomResult]) => {
-        setSessions(sessionResult.data ?? []);
+      .then(([sessionResult, roomResult, examResult]) => {
+        const examinations = (examResult.data ?? []).map((exam: any) => ({
+          ...exam,
+          id: `exam-${exam.id}`,
+          lecturer_id: "",
+          section_ids: [exam.section_id],
+          session_type: "examination",
+          is_exam: true,
+        }));
+        setSessions([...(sessionResult.data ?? []), ...examinations]);
         setRooms(roomResult.data ?? []);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [role]);
 
   const relevantSessions = useMemo(
     () =>
@@ -88,9 +101,9 @@ export function RoleHome({ role }: { role: "STUDENT" | "FACULTY" | "SSD" }) {
 
       <section className="role-stat-grid">
         <article className="role-card role-stat">
-          <span>{role === "SSD" ? "Scheduled classes" : "Assigned classes"}</span>
+          <span>{role === "SSD" ? "Scheduled classes" : role === "STUDENT" ? "Classes & exams" : "Assigned classes"}</span>
           <strong>{loading ? "—" : relevantSessions.length}</strong>
-          <small>Active timetable entries</small>
+          <small>{role === "STUDENT" ? "Your cohort timetable entries" : "Active timetable entries"}</small>
         </article>
         <article className="role-card role-stat">
           <span>Available rooms</span>
@@ -110,8 +123,10 @@ export function RoleHome({ role }: { role: "STUDENT" | "FACULTY" | "SSD" }) {
           <h2>{role === "SSD" ? "Room booking desk" : "Personal schedule"}</h2>
           <p>
             {role === "SSD"
-              ? "Create service-desk bookings only after checking the room and time slot for clashes."
-              : "Open a focused schedule containing only the classes relevant to this account."}
+              ? "Create service-desk bookings after checking room and time-slot availability."
+              : role === "STUDENT"
+                ? "Open your cohort timetable with scheduled classes and examinations in one place."
+                : "Open a focused schedule containing only the classes relevant to this account."}
           </p>
           <Link className="role-primary-button" href={primaryHref}>
             {role === "SSD" ? "Manage bookings" : "Open my timetable"}

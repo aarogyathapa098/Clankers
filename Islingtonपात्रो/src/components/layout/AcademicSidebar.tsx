@@ -38,16 +38,7 @@ const navSections: NavSection[] = [
   { label: "Student Dashboard", href: "/student/dashboard", icon: "overview", roles: ["STUDENT"] },
   { label: "Faculty Dashboard", href: "/faculty/dashboard", icon: "overview", roles: ["FACULTY"] },
   { label: "SSD Dashboard", href: "/ssd/dashboard", icon: "overview", roles: ["SSD"] },
-  {
-    label: "Timetable",
-    icon: "timetable",
-    children: [
-      { label: "Master Timetable", href: "/timetable", roles: ["ADMIN"] },
-      { label: "Generate Schedule", href: "/timetable/new", roles: ["ADMIN"] },
-      { label: "Conflict Centre", href: "/dashboard/conflicts", roles: ["ADMIN"] },
-    ],
-    roles: ["ADMIN"],
-  },
+  { label: "Timetable", href: "/timetable", icon: "timetable", roles: ["ADMIN"] },
   {
     label: "My Learning",
     icon: "timetable",
@@ -66,16 +57,7 @@ const navSections: NavSection[] = [
     ],
     roles: ["FACULTY"],
   },
-  {
-    label: "Examinations",
-    icon: "exam",
-    children: [
-      { label: "Exam Schedule", href: "/examinations", roles: ["ADMIN"] },
-      { label: "Venue Allocation", href: "/examinations/venues", roles: ["ADMIN"] },
-      { label: "Invigilators", href: "/examinations/invigilators", roles: ["ADMIN"] },
-    ],
-    roles: ["ADMIN"],
-  },
+  { label: "Examinations", href: "/examinations", icon: "exam", roles: ["ADMIN"] },
   {
     label: "Resources",
     icon: "resources",
@@ -99,26 +81,6 @@ const navSections: NavSection[] = [
     children: [
       { label: "Workload", href: "/workload", roles: ["ADMIN"] },
       { label: "Module Assignments", href: "/modules", roles: ["ADMIN"] },
-    ],
-    roles: ["ADMIN"],
-  },
-  {
-    label: "Lookups",
-    icon: "lookups",
-    children: [
-      { label: "My Schedule", href: "/lookup/my-schedule", roles: ["ADMIN"] },
-      { label: "Faculty Schedule", href: "/lookup/faculty", roles: ["ADMIN"] },
-      { label: "Cohort Schedule", href: "/lookup/cohort", roles: ["ADMIN"] },
-      { label: "Room Search", href: "/lookup/rooms", roles: ["ADMIN"] },
-    ],
-    roles: ["ADMIN"],
-  },
-  {
-    label: "Analytics",
-    icon: "analytics",
-    children: [
-      { label: "Utilization & Metrics", href: "/analytics/utilization", roles: ["ADMIN"] },
-      { label: "Roles & Access", href: "/admin/roles", roles: ["ADMIN"] },
     ],
     roles: ["ADMIN"],
   },
@@ -228,12 +190,8 @@ export function AcademicSidebar() {
   const pathname = usePathname();
   const { role, setRole } = useRole();
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    Timetable: true,
-    Examinations: true,
     Resources: true,
     Faculty: true,
-    Lookups: true,
-    Analytics: true,
   });
   const visibleSections = useMemo(
     () =>

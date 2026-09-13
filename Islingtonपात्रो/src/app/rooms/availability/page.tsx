@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AcademicSidebar } from "@/components/layout/AcademicSidebar";
+import { useRole } from "@/components/auth/RoleProvider";
 
 type Room = {
   id: string;
@@ -15,6 +16,7 @@ type Room = {
 };
 
 export default function RoomAvailabilityPage() {
+  const { role, ready } = useRole();
   const [selectedDay, setSelectedDay] = useState("TUE");
   const [selectedWindow, setSelectedWindow] = useState("11:00");
   const [minCapacity, setMinCapacity] = useState(30);
@@ -25,6 +27,18 @@ export default function RoomAvailabilityPage() {
   const [allocatedCount, setAllocatedCount] = useState(0);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(false);
+  const canBook = ready && (role === "ADMIN" || role === "SSD");
+
+  function bookingHref(roomId?: string) {
+    const params = new URLSearchParams({
+      day: selectedDay,
+      start: selectedWindow,
+    });
+    if (roomId) params.set("roomId", roomId);
+    if (role === "SSD") return `/ssd/bookings?${params.toString()}`;
+    params.set("create", "1");
+    return `/timetable?${params.toString()}`;
+  }
 
   useEffect(() => {
     async function fetchAvailability() {
@@ -65,13 +79,15 @@ export default function RoomAvailabilityPage() {
             <div>
               <p>Resources / Room Availability</p>
               <h1>Room Availability &amp; Slot Finder</h1>
-              <span>Find open campus rooms, compare capacity, and catch room clashes before sessions are assigned.</span>
+              <span>Find open campus rooms, compare capacity, and confirm availability before sessions are assigned.</span>
             </div>
-            <div className="resource-actions">
-              <a href="/timetable" className="primary" style={{ textDecoration: "none", padding: "10px 16px", borderRadius: "8px", fontWeight: 600, fontSize: "13px" }}>
-                + Book in Timetable
-              </a>
-            </div>
+            {canBook && (
+              <div className="resource-actions">
+                <a href={bookingHref(selectedRoom?.id)} className="primary" style={{ textDecoration: "none", padding: "10px 16px", borderRadius: "8px", fontWeight: 600, fontSize: "13px" }}>
+                  {role === "SSD" ? "+ Create Room Booking" : "+ Schedule in Timetable"}
+                </a>
+              </div>
+            )}
           </header>
 
           <section className="filter-panel panel">
@@ -127,7 +143,7 @@ export default function RoomAvailabilityPage() {
             <MetricCard label="Target Window" value={`${selectedDay} ${selectedWindow}`} detail="Selected slot" tone="blue" />
             <MetricCard label="Total Rooms" value={totalRooms} detail="Accredited spaces" tone="slate" />
             <MetricCard label="Occupied in Slot" value={allocatedCount} detail="Currently scheduled" tone="yellow" />
-            <MetricCard label="Available to Book" value={availableRooms.length} detail="Zero clashes" tone="green" />
+            <MetricCard label="Available Rooms" value={availableRooms.length} detail="Open in selected slot" tone="green" />
           </section>
 
           <section className="availability-layout">
@@ -152,19 +168,21 @@ export default function RoomAvailabilityPage() {
                     </div>
                     <p>{room.capacity} seats / {room.building}</p>
                     <span>{room.room_type === "lab" ? "Specialist Lab hardware" : "Teaching-ready setup"}</span>
-                    <a
-                      href="/timetable"
-                      style={{
-                        display: "inline-block",
-                        marginTop: "8px",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        color: "#1677F5",
-                        textDecoration: "none",
-                      }}
-                    >
-                      Quick Book →
-                    </a>
+                    {canBook && (
+                      <a
+                        href={bookingHref(room.id)}
+                        style={{
+                          display: "inline-block",
+                          marginTop: "8px",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          color: "#1677F5",
+                          textDecoration: "none",
+                        }}
+                      >
+                        {role === "SSD" ? "Book this room →" : "Schedule this room →"}
+                      </a>
+                    )}
                   </article>
                 ))
               ) : (
@@ -203,25 +221,27 @@ export default function RoomAvailabilityPage() {
                   <div style={{ backgroundColor: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: "8px", padding: "14px", marginBottom: "16px" }}>
                     <strong style={{ color: "#1E40AF", display: "block", marginBottom: "4px" }}>Slot Verification Status:</strong>
                     <span style={{ color: "#1D4ED8", fontSize: "13px" }}>
-                      ✓ {selectedRoom.room_code} has no active sessions assigned on {selectedDay} during {selectedWindow}. Scheduling this room will not generate double-booking conflicts.
+                      ✓ {selectedRoom.room_code} has no active sessions assigned on {selectedDay} during {selectedWindow}.
                     </span>
                   </div>
 
-                  <a
-                    href="/timetable"
-                    style={{
-                      display: "inline-block",
-                      backgroundColor: "#1677F5",
-                      color: "#FFFFFF",
-                      padding: "10px 20px",
-                      borderRadius: "8px",
-                      fontWeight: 600,
-                      textDecoration: "none",
-                      fontSize: "13px",
-                    }}
-                  >
-                    Proceed to Schedule in {selectedRoom.room_code}
-                  </a>
+                  {canBook && (
+                    <a
+                      href={bookingHref(selectedRoom.id)}
+                      style={{
+                        display: "inline-block",
+                        backgroundColor: "#1677F5",
+                        color: "#FFFFFF",
+                        padding: "10px 20px",
+                        borderRadius: "8px",
+                        fontWeight: 600,
+                        textDecoration: "none",
+                        fontSize: "13px",
+                      }}
+                    >
+                      {role === "SSD" ? `Book ${selectedRoom.room_code}` : `Schedule in ${selectedRoom.room_code}`}
+                    </a>
+                  )}
                 </div>
               ) : (
                 <p style={{ color: "#64748b", padding: "20px 0" }}>Select a room from the list on the left to review slot details.</p>

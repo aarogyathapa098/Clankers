@@ -50,16 +50,6 @@ function DoorIcon({ size = 24, color = "#1677f5" }: { size?: number; color?: str
   );
 }
 
-function AlertIcon({ size = 24, color = "#ef4444" }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.85} strokeLinecap="round" strokeLinejoin="round">
-      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-      <line x1="12" y1="9" x2="12" y2="13" />
-      <line x1="12" y1="17" x2="12.01" y2="17" />
-    </svg>
-  );
-}
-
 function CalendarIcon({ size = 18, color = "#1677f5" }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.85} strokeLinecap="round" strokeLinejoin="round">
@@ -74,25 +64,6 @@ function UserIcon({ size = 18, color = "#1677f5" }: { size?: number; color?: str
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.85} strokeLinecap="round" strokeLinejoin="round">
       <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
       <circle cx="12" cy="7" r="4" />
-    </svg>
-  );
-}
-
-function UsersIcon({ size = 18, color = "#1677f5" }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.85} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  );
-}
-
-function ChevronRight({ size = 14, color = "#64748b" }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="m9 18 6-6-6-6" />
     </svg>
   );
 }
@@ -113,19 +84,8 @@ type DashboardStats = {
   sessions_today: number;
   total_rooms: number;
   available_rooms: number;
-  active_conflicts: number;
   total_lecturers: number;
   total_modules: number;
-};
-
-type ConflictRecord = {
-  id?: string;
-  conflict_id: string;
-  conflict_type: string;
-  severity: string;
-  description: string;
-  conflict_date: string;
-  is_resolved: boolean;
 };
 
 type LecturerRecord = {
@@ -200,53 +160,22 @@ function getBlockStyle(type: ScheduleCell["type"]) {
   }
 }
 
-// --- Fallback data ---
-const fallbackConflicts = [
-  { type: "Faculty clash", desc: "Dr. Smith assigned to 2 classes", code: "AI401", time: "Tue 11:00 – 12:30", severity: "red" },
-  { type: "Room capacity issue", desc: "12 students over capacity", code: "SE302", time: "Hall A\nWed 09:30 – 11:00", severity: "yellow" },
-  { type: "Room unavailable", desc: "Projector not available", code: "DB204", time: "Room 501\nThu 14:00 – 15:30", severity: "yellow" },
-  { type: "Cohort clash", desc: "Group A has overlapping classes", code: "WT201", time: "Mon 09:30 – 15:30", severity: "red" },
-];
-
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [conflicts, setConflicts] = useState<ConflictRecord[]>([]);
   const [lecturers, setLecturers] = useState<LecturerRecord[]>([]);
   const [loading, setLoading] = useState(true);
-
-  async function handleResolveConflict(conflictId: string) {
-    try {
-      const res = await fetch("/api/conflicts/resolve", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conflictId }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setConflicts((prev) => prev.filter((c) => (c.conflict_id || c.id) !== conflictId));
-        if (stats) {
-          setStats({ ...stats, active_conflicts: Math.max(0, stats.active_conflicts - 1) });
-        }
-      }
-    } catch {
-      // ignore
-    }
-  }
+  const [calendarView, setCalendarView] = useState<"Day" | "Week" | "Month">("Week");
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [dashRes, conflictRes, lecturerRes] = await Promise.allSettled([
+        const [dashRes, lecturerRes] = await Promise.allSettled([
           fetch("/api/dashboard").then((r) => r.json()),
-          fetch("/api/conflicts").then((r) => r.json()),
           fetch("/api/lecturers").then((r) => r.json()),
         ]);
 
         if (dashRes.status === "fulfilled" && dashRes.value.success) {
           setStats(dashRes.value.data);
-        }
-        if (conflictRes.status === "fulfilled" && conflictRes.value.success) {
-          setConflicts(conflictRes.value.data ?? []);
         }
         if (lecturerRes.status === "fulfilled" && lecturerRes.value.success) {
           setLecturers(lecturerRes.value.data ?? []);
@@ -261,6 +190,10 @@ export default function DashboardPage() {
   }, []);
 
   const today = new Date();
+  const todayKey = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][today.getDay()];
+  const activeDashboardDays = calendarView === "Day"
+    ? [days.find((day) => day.key === todayKey) ?? days[0]]
+    : days;
   const dateStr = today.toLocaleDateString("en-US", {
     weekday: "short",
     day: "numeric",
@@ -272,7 +205,6 @@ export default function DashboardPage() {
   const sessionsToday = stats?.sessions_today ?? 128;
   const totalRooms = stats?.total_rooms ?? 42;
   const availableRooms = stats?.available_rooms ?? 14;
-  const activeConflicts = stats?.active_conflicts ?? 7;
 
   // Faculty workload from API or fallback
   const facultyWorkload = lecturers.length > 0
@@ -294,18 +226,6 @@ export default function DashboardPage() {
         { faculty: "Dr. Kumar", assigned: 22, max: 20, status: "Overload", color: "#ef4444" },
         { faculty: "Dr. Chen", assigned: 10, max: 20, status: "Normal", color: "#22c55e" },
       ];
-
-  // Map API conflicts to display format, or use fallback
-  const displayConflicts = conflicts.length > 0
-    ? conflicts.filter((c) => !c.is_resolved).slice(0, 4).map((c: any) => ({
-        id: c.conflict_id || c.id || "conf-1",
-        type: (c.conflict_type || "CLASH").replace("_", " "),
-        desc: c.description,
-        code: c.conflict_type,
-        time: c.conflict_date,
-        severity: c.severity === "critical" ? "red" : "yellow",
-      }))
-    : fallbackConflicts.map((fc, i) => ({ ...fc, id: `fallback-${i}` }));
 
   const recentAssignments = [
     { module: "CS205", faculty: "Dr. Smith", cohort: "Group A", hours: 3 },
@@ -375,20 +295,6 @@ export default function DashboardPage() {
             {/* Bell icon */}
             <div style={{ position: "relative", display: "flex", alignItems: "center", cursor: "pointer" }}>
               <BellIcon size={20} color="#1E293B" />
-              {activeConflicts > 0 && (
-                <span
-                  style={{
-                    position: "absolute",
-                    top: "0px",
-                    right: "-1px",
-                    width: "7.5px",
-                    height: "7.5px",
-                    backgroundColor: "#EF4444",
-                    borderRadius: "50%",
-                    border: "1.5px solid #FFFFFF",
-                  }}
-                />
-              )}
             </div>
 
             {/* Profile */}
@@ -433,11 +339,11 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* 4 KPI Cards */}
+          {/* Planning KPI Cards */}
           <section
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
+              gridTemplateColumns: "repeat(3, 1fr)",
               gap: "16px",
               marginBottom: "18px",
             }}
@@ -478,23 +384,9 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Card 4: Active Clashes */}
-            <div style={{ backgroundColor: "#FFFFFF", borderRadius: "9px", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(15, 32, 61, 0.03)", padding: "16px 18px", display: "flex", alignItems: "center", gap: "14px" }}>
-              <div style={{ width: "52px", height: "52px", borderRadius: "10px", backgroundColor: "#FEECEC", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <AlertIcon size={24} color="#EF4444" />
-              </div>
-              <div>
-                <p style={{ margin: "0 0 2px 0", fontSize: "12.5px", fontWeight: 600, color: "#0F203D" }}>Active Clashes</p>
-                <p style={{ margin: "0 0 2px 0", fontSize: "25px", fontWeight: 800, color: "#0F203D", lineHeight: 1.15 }}>{activeConflicts}</p>
-                <p style={{ margin: 0, fontSize: "11.5px", color: "#64748B" }}>
-                  {activeConflicts > 0 ? <span style={{ color: "#EF4444", fontWeight: 600 }}>Needs attention</span> : "All clear"}
-                </p>
-              </div>
-            </div>
           </section>
 
-          {/* Main 2-Column Split */}
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 59.5%) minmax(0, 40.5%)", gap: "16px", alignItems: "start" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "16px", alignItems: "start" }}>
             {/* Left Column */}
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               {/* Weekly Timetable Card */}
@@ -502,13 +394,24 @@ export default function DashboardPage() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <CalendarIcon size={18} color="#1677F5" />
-                    <h2 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#0F203D" }}>Weekly Timetable</h2>
+                    <h2 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#0F203D" }}>{calendarView} Timetable</h2>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <div style={{ backgroundColor: "#F1F5F9", borderRadius: "6px", padding: "2px", display: "flex", alignItems: "center" }}>
-                      <button type="button" style={{ border: "none", backgroundColor: "transparent", color: "#64748B", fontSize: "11.5px", fontWeight: 500, padding: "4px 11px", borderRadius: "4px", cursor: "pointer" }}>Day</button>
-                      <button type="button" style={{ border: "none", backgroundColor: "#1677F5", color: "#FFFFFF", fontSize: "11.5px", fontWeight: 600, padding: "4px 13px", borderRadius: "4px", cursor: "pointer" }}>Week</button>
-                      <button type="button" style={{ border: "none", backgroundColor: "transparent", color: "#64748B", fontSize: "11.5px", fontWeight: 500, padding: "4px 11px", borderRadius: "4px", cursor: "pointer" }}>Month</button>
+                      {(["Day", "Week", "Month"] as const).map((view) => {
+                        const active = calendarView === view;
+                        return (
+                          <button
+                            aria-pressed={active}
+                            key={view}
+                            onClick={() => setCalendarView(view)}
+                            type="button"
+                            style={{ border: "none", backgroundColor: active ? "#1677F5" : "transparent", color: active ? "#FFFFFF" : "#64748B", fontSize: "11.5px", fontWeight: active ? 600 : 500, padding: "4px 11px", borderRadius: "4px", cursor: "pointer" }}
+                          >
+                            {view}
+                          </button>
+                        );
+                      })}
                     </div>
                     <div style={{ width: "26px", height: "26px", borderRadius: "5px", border: "1px solid #E2E8F0", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", backgroundColor: "#FFFFFF" }}>
                       <GridIcon size={13} color="#64748B" />
@@ -518,11 +421,43 @@ export default function DashboardPage() {
 
                 {/* Grid Table */}
                 <div style={{ border: "1px solid #E8EEF5", borderRadius: "7px", overflow: "hidden" }}>
+                  {calendarView === "Month" ? (
+                    <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+                      <thead>
+                        <tr style={{ backgroundColor: "#F8FAFD", height: "32px" }}>
+                          <th style={{ width: "90px", fontSize: "11.5px", color: "#0F203D" }}>Day</th>
+                          {[1, 2, 3, 4].map((week) => (
+                            <th key={week} style={{ borderLeft: "1px solid #E8EEF5", fontSize: "11.5px", fontWeight: 700, color: "#0F203D", textAlign: "center", padding: "6px 0" }}>
+                              Week {week}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {days.map((day) => {
+                          const recurringSessions = timeSlots
+                            .map((time) => timetableData[time]?.[day.key])
+                            .filter((cell): cell is ScheduleCell => Boolean(cell));
+                          return (
+                            <tr key={day.key} style={{ borderTop: "1px solid #E8EEF5", height: "58px" }}>
+                              <td style={{ fontSize: "11px", fontWeight: 700, color: "#0F203D", textAlign: "center" }}>{day.label.split(" ")[0]}</td>
+                              {[1, 2, 3, 4].map((week) => (
+                                <td key={week} style={{ borderLeft: "1px solid #E8EEF5", padding: "6px", textAlign: "center", backgroundColor: "#FFFFFF" }}>
+                                  <strong style={{ display: "block", fontSize: "12px", color: "#1677F5" }}>{recurringSessions.length} sessions</strong>
+                                  <span style={{ fontSize: "9.5px", color: "#64748B" }}>{recurringSessions.slice(0, 2).map((cell) => cell.code).join(", ") || "Open"}</span>
+                                </td>
+                              ))}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  ) : (
                   <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
                     <thead>
                       <tr style={{ backgroundColor: "#F8FAFD", height: "32px" }}>
                         <th style={{ width: "62px" }}></th>
-                        {days.map((day) => (
+                        {activeDashboardDays.map((day) => (
                           <th key={day.key} style={{ borderLeft: "1px solid #E8EEF5", fontSize: "11.5px", fontWeight: 700, color: "#0F203D", textAlign: "center", padding: "6px 0" }}>
                             {day.label}
                           </th>
@@ -535,7 +470,7 @@ export default function DashboardPage() {
                           <td style={{ fontSize: "11px", fontWeight: 600, color: "#64748B", textAlign: "center", verticalAlign: "middle", padding: "4px", backgroundColor: "#FFFFFF" }}>
                             {time}
                           </td>
-                          {days.map((day) => {
+                          {activeDashboardDays.map((day) => {
                             const cell = timetableData[time]?.[day.key];
                             if (!cell) {
                               return <td key={day.key} style={{ borderLeft: "1px solid #E8EEF5", padding: "3px 4px", backgroundColor: "#FFFFFF" }} />;
@@ -555,6 +490,7 @@ export default function DashboardPage() {
                       ))}
                     </tbody>
                   </table>
+                  )}
                 </div>
               </div>
 
@@ -631,101 +567,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Right Column */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {/* Scheduling Conflicts Card */}
-              <div style={{ backgroundColor: "#FFFFFF", borderRadius: "9px", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(15, 32, 61, 0.03)", padding: "16px 18px", boxSizing: "border-box" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-                  <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#0F203D" }}>Scheduling Conflicts</h2>
-                  <a href="/dashboard/conflicts" style={{ color: "#1677F5", fontSize: "11.5px", fontWeight: 600, textDecoration: "none" }}>View All →</a>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column" }}>
-                  {displayConflicts.map((conf, index) => (
-                    <div key={`${conf.type}-${index}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 0", borderBottom: index < displayConflicts.length - 1 ? "1px solid #F1F5F9" : "none" }}>
-                      <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-                        <div style={{ width: "7px", height: "7px", borderRadius: "50%", backgroundColor: conf.severity === "red" ? "#EF4444" : "#F59E0B", marginTop: "4px", flexShrink: 0 }} />
-                        <div>
-                          <p style={{ margin: "0 0 2px 0", fontSize: "12px", fontWeight: 700, color: "#0F203D" }}>{conf.type}</p>
-                          <p style={{ margin: 0, fontSize: "11px", color: "#64748B" }}>{conf.desc}</p>
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", textAlign: "right" }}>
-                        <div>
-                          <p style={{ margin: "0 0 2px 0", fontSize: "12px", fontWeight: 700, color: "#0F203D" }}>{conf.code}</p>
-                          <p style={{ margin: 0, fontSize: "10.5px", color: "#64748B", whiteSpace: "pre-line", lineHeight: 1.25 }}>{conf.time}</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleResolveConflict(conf.id)}
-                          style={{
-                            fontSize: "11px",
-                            padding: "3px 8px",
-                            borderRadius: "5px",
-                            border: "1px solid #E2E8F0",
-                            backgroundColor: "#F8FAFC",
-                            color: "#1677F5",
-                            cursor: "pointer",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Resolve
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Quick Lookups Card */}
-              <div style={{ backgroundColor: "#FFFFFF", borderRadius: "9px", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(15, 32, 61, 0.03)", padding: "16px 18px", boxSizing: "border-box" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
-                  <SearchIcon size={18} color="#1677F5" />
-                  <h2 style={{ margin: 0, fontSize: "15px", fontWeight: 700, color: "#0F203D" }}>Quick Lookups</h2>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                  <a href="/lookup/rooms" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#F6FAFD", border: "1px solid #E6EDF5", borderRadius: "8px", padding: "11px 14px", textDecoration: "none", transition: "background-color 0.15s" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "11px" }}>
-                      <SearchIcon size={17} color="#1677F5" />
-                      <span style={{ fontSize: "13px", fontWeight: 700, color: "#0F203D" }}>Find a room</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span style={{ fontSize: "11px", color: "#64748B" }}>Check availability by time and capacity</span>
-                      <ChevronRight size={13} color="#1677F5" />
-                    </div>
-                  </a>
-                  <a href="/lookup/faculty" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#F6FAFD", border: "1px solid #E6EDF5", borderRadius: "8px", padding: "11px 14px", textDecoration: "none", transition: "background-color 0.15s" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "11px" }}>
-                      <UserIcon size={17} color="#1677F5" />
-                      <span style={{ fontSize: "13px", fontWeight: 700, color: "#0F203D" }}>View faculty schedule</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span style={{ fontSize: "11px", color: "#64748B" }}>Search any faculty member</span>
-                      <ChevronRight size={13} color="#1677F5" />
-                    </div>
-                  </a>
-                  <a href="/lookup/cohort" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#F6FAFD", border: "1px solid #E6EDF5", borderRadius: "8px", padding: "11px 14px", textDecoration: "none", transition: "background-color 0.15s" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "11px" }}>
-                      <UsersIcon size={17} color="#1677F5" />
-                      <span style={{ fontSize: "13px", fontWeight: 700, color: "#0F203D" }}>View cohort schedule</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span style={{ fontSize: "11px", color: "#64748B" }}>Search any cohort</span>
-                      <ChevronRight size={13} color="#1677F5" />
-                    </div>
-                  </a>
-                  <a href="/lookup/my-schedule" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#F6FAFD", border: "1px solid #E6EDF5", borderRadius: "8px", padding: "11px 14px", textDecoration: "none", transition: "background-color 0.15s" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "11px" }}>
-                      <CalendarIcon size={17} color="#1677F5" />
-                      <span style={{ fontSize: "13px", fontWeight: 700, color: "#0F203D" }}>My schedule</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span style={{ fontSize: "11px", color: "#64748B" }}>View your personal timetable</span>
-                      <ChevronRight size={13} color="#1677F5" />
-                    </div>
-                  </a>
-                </div>
-              </div>
-            </div>
           </div>
         </main>
       </div>

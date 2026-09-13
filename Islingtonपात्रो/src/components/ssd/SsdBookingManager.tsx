@@ -22,6 +22,8 @@ export function SsdBookingManager() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [notice, setNotice] = useState<{ tone: "error" | "success"; message: string } | null>(null);
+  const [selectedRoomId, setSelectedRoomId] = useState("");
+  const [selectedTimeSlotId, setSelectedTimeSlotId] = useState("");
 
   useEffect(() => {
     Promise.all([
@@ -42,6 +44,24 @@ export function SsdBookingManager() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (rooms.length === 0 || timeSlots.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const requestedRoom = params.get("roomId");
+    const requestedDay = params.get("day");
+    const requestedStart = params.get("start");
+    const matchingSlot = timeSlots.find(
+      (slot) =>
+        (!requestedDay || slot.day_of_week.toUpperCase().startsWith(requestedDay.toUpperCase())) &&
+        (!requestedStart || slot.start_time.startsWith(requestedStart)),
+    );
+
+    setSelectedRoomId(
+      requestedRoom && rooms.some((room) => room.id === requestedRoom) ? requestedRoom : rooms[0].id,
+    );
+    setSelectedTimeSlotId(matchingSlot?.id ?? timeSlots[0].id);
+  }, [rooms, timeSlots]);
 
   const bookingRows = useMemo(
     () =>
@@ -90,7 +110,7 @@ export function SsdBookingManager() {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextBookings));
     setNotice({
       tone: "success",
-      message: `${room?.room_code ?? "Room"} was booked successfully with no timetable clash.`,
+      message: `${room?.room_code ?? "Room"} was booked successfully after availability validation.`,
     });
     event.currentTarget.reset();
   }
@@ -102,7 +122,7 @@ export function SsdBookingManager() {
           <div>
             <span className="role-kicker">SSD booking desk</span>
             <h1>Create a room booking</h1>
-            <p>Book on behalf of a student or faculty member. Timetable and SSD booking clashes are blocked.</p>
+            <p>Book on behalf of a student or faculty member. Unavailable rooms and occupied time slots are automatically blocked.</p>
           </div>
           <span className="role-status">SSD only</span>
         </div>
@@ -123,7 +143,8 @@ export function SsdBookingManager() {
           </label>
           <label>
             Room
-            <select name="roomId" required>
+            <select name="roomId" required value={selectedRoomId} onChange={(event) => setSelectedRoomId(event.target.value)}>
+              {!selectedRoomId && <option value="">Loading rooms…</option>}
               {rooms.map((room) => (
                 <option value={room.id} key={room.id}>
                   {room.room_code} · {room.room_name} · {room.capacity} seats
@@ -133,7 +154,8 @@ export function SsdBookingManager() {
           </label>
           <label>
             Time slot
-            <select name="timeSlotId" required>
+            <select name="timeSlotId" required value={selectedTimeSlotId} onChange={(event) => setSelectedTimeSlotId(event.target.value)}>
+              {!selectedTimeSlotId && <option value="">Loading time slots…</option>}
               {timeSlots.map((slot) => (
                 <option value={slot.id} key={slot.id}>
                   {slot.day_of_week} · {slot.start_time}–{slot.end_time}

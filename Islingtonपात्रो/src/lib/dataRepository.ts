@@ -430,7 +430,8 @@ class AcademicDataRepository {
     }
 
     return this.lecturers.map((l) => {
-      const assigned = hoursMap[l.id] ?? hoursMap[l.lecturer_id ?? ""] ?? l.assigned_hours ?? 0;
+      const scheduledHours = hoursMap[l.id] ?? hoursMap[l.lecturer_id ?? ""] ?? 0;
+      const assigned = (l.assigned_hours ?? 0) + scheduledHours;
       const pct = l.max_weekly_hours > 0 ? Math.round((assigned / l.max_weekly_hours) * 100) : 0;
       const statusLabel = pct > 100 ? "Overload" : pct >= 80 ? "Near Limit" : "Normal";
       return {

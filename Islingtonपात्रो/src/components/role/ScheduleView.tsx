@@ -15,6 +15,7 @@ type ScheduleSession = {
   lecturer?: { first_name?: string; last_name?: string };
   room?: { room_code?: string; room_name?: string };
   timeslot?: { day_of_week?: string; start_time?: string; end_time?: string };
+  is_exam?: boolean;
 };
 
 export function ScheduleView({ role }: { role: "STUDENT" | "FACULTY" }) {
@@ -24,15 +25,35 @@ export function ScheduleView({ role }: { role: "STUDENT" | "FACULTY" }) {
   const profile = ROLE_PROFILES[role];
 
   useEffect(() => {
-    fetch("/api/sessions")
-      .then(async (response) => {
+    Promise.all([
+      fetch("/api/sessions").then(async (response) => {
         const result = await response.json();
         if (!response.ok || !result.success) throw new Error(result.message || "Unable to load schedule");
-        setSessions(result.data ?? []);
+        return result.data ?? [];
+      }),
+      role === "STUDENT"
+        ? fetch("/api/examinations").then(async (response) => {
+            const result = await response.json();
+            if (!response.ok || !result.success) throw new Error(result.message || "Unable to load examinations");
+            return (result.data ?? []).map((exam: any) => ({
+              ...exam,
+              id: `exam-${exam.id}`,
+              lecturer_id: "",
+              room_id: "",
+              time_slot_id: "",
+              section_ids: [exam.section_id],
+              session_type: "examination",
+              is_exam: true,
+            }));
+          })
+        : Promise.resolve([]),
+    ])
+      .then(([classSessions, examinations]) => {
+        setSessions([...classSessions, ...examinations]);
       })
       .catch((reason: Error) => setError(reason.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [role]);
 
   const visibleSessions = useMemo(
     () =>
@@ -74,7 +95,7 @@ export function ScheduleView({ role }: { role: "STUDENT" | "FACULTY" }) {
 
       <div className="schedule-list">
         {visibleSessions.map((session) => (
-          <article className="schedule-row" key={session.id}>
+          <article className={`schedule-row${session.is_exam ? " examination" : ""}`} key={session.id}>
             <div className="schedule-time">
               <strong>{session.timeslot?.day_of_week ?? "Scheduled"}</strong>
               <span>
@@ -84,6 +105,7 @@ export function ScheduleView({ role }: { role: "STUDENT" | "FACULTY" }) {
             <div className="schedule-module">
               <strong>{session.module?.module_code ?? "Module"}</strong>
               <span>{session.module?.module_name ?? session.session_type}</span>
+              {session.is_exam && <span className="role-status warning">Examination</span>}
             </div>
             <div>
               <strong>{session.room?.room_code ?? "Room TBA"}</strong>

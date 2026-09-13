@@ -353,6 +353,22 @@
   padding: 14px 0;
   border-top: 1px solid #edf2f7;
 }
+.schedule-row.examination {
+  border-left: 3px solid #d99a2b;
+  background: #fffbeb;
+}
+
+.table-action-link {
+  display: inline-block;
+  color: #1677f5;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.table-action-link:hover {
+  text-decoration: underline;
+}
 .schedule-row > div { display: flex; flex-direction: column; }
 .schedule-row strong { color: #0f203d; font-size: 12.5px; }
 .schedule-row span { color: #64748b; font-size: 11px; text-transform: capitalize; }

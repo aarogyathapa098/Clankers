@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AcademicSidebar } from "@/components/layout/AcademicSidebar";
+import { examSchedule } from "@/lib/examSchedule";
 
 const academicPeriod = {
   name: "Spring Examination Board",
@@ -11,51 +12,10 @@ const academicPeriod = {
   status: "active",
 };
 
-const examSchedule = [
-  {
-    id: "sess-1",
-    module: { module_code: "CS205", module_name: "Database Systems", credit_value: 20 },
-    lecturer: { first_name: "Dr. John", last_name: "Smith", department: "Computer Science" },
-    room: { room_code: "HALL-A", room_name: "Main Auditorium Hall A", building: "Block C", floor: "Ground", capacity: 180, exam_capacity: 120, room_type: "Exam Hall" },
-    timeslot: { day_of_week: "Friday", start_time: "13:00", end_time: "16:00", slot_label: "Afternoon" },
-    section: { section_code: "L4CG1", section_name: "BSc Level 4 Cohort 1", year_level: 1, max_students: 55 },
-    status: "confirmed",
-  },
-  {
-    id: "sess-2",
-    module: { module_code: "AI301", module_name: "Artificial Intelligence", credit_value: 20 },
-    lecturer: { first_name: "Dr. Alan", last_name: "Lee", department: "Artificial Intelligence" },
-    room: { room_code: "LAB-1", room_name: "Computing & AI Lab 1", building: "Block B", floor: "2", capacity: 42, exam_capacity: 35, room_type: "Lab" },
-    timeslot: { day_of_week: "Tuesday", start_time: "13:00", end_time: "16:00", slot_label: "Afternoon" },
-    section: { section_code: "L4CG2", section_name: "BSc Level 4 Cohort 2", year_level: 1, max_students: 38 },
-    status: "scheduled",
-  },
-  {
-    id: "sess-3",
-    module: { module_code: "WT201", module_name: "Web Technologies", credit_value: 15 },
-    lecturer: { first_name: "Ms. Karen", last_name: "Chen", department: "Software Engineering" },
-    room: { room_code: "HALL-B", room_name: "Secondary Exam Hall B", building: "Block C", floor: "1", capacity: 120, exam_capacity: 80, room_type: "Exam Hall" },
-    timeslot: { day_of_week: "Thursday", start_time: "09:00", end_time: "12:00", slot_label: "Morning" },
-    section: { section_code: "L5CG1", section_name: "BSc Level 5 Cohort 1", year_level: 2, max_students: 42 },
-    status: "confirmed",
-  },
-  {
-    id: "sess-4",
-    module: { module_code: "DB204", module_name: "Data Modelling & Analytics", credit_value: 20 },
-    lecturer: { first_name: "Dr. Priya", last_name: "Kumar", department: "Data Science" },
-    room: { room_code: "R-401", room_name: "Lecture Theatre 401", building: "Block B", floor: "4", capacity: 70, exam_capacity: 50, room_type: "Exam Hall" },
-    timeslot: { day_of_week: "Friday", start_time: "09:00", end_time: "12:00", slot_label: "Morning" },
-    section: { section_code: "L5CG2", section_name: "BSc Level 5 Cohort 2", year_level: 2, max_students: 40 },
-    status: "scheduled",
-  },
-];
-
 export default function ExaminationsPage() {
   const [selectedExam, setSelectedExam] = useState(examSchedule[0]);
   const [seatPlans, setSeatPlans] = useState<any[]>([]);
-  const [invigilators, setInvigilators] = useState<any[]>([]);
   const [isGeneratingSeats, setIsGeneratingSeats] = useState(false);
-  const [isAllocatingInvigilators, setIsAllocatingInvigilators] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   function showToast(msg: string) {
@@ -65,13 +25,9 @@ export default function ExaminationsPage() {
 
   async function loadExamDetails(sessionId: string) {
     try {
-      const [seatRes, invRes] = await Promise.all([
-        fetch(`/api/exam-seat-plans?sessionId=${sessionId}`).then((r) => r.json()),
-        fetch(`/api/invigilators?sessionId=${sessionId}`).then((r) => r.json()),
-      ]);
+      const seatRes = await fetch(`/api/exam-seat-plans?sessionId=${sessionId}`).then((r) => r.json());
 
       if (seatRes.success) setSeatPlans(seatRes.data ?? []);
-      if (invRes.success) setInvigilators(invRes.data ?? []);
     } catch {
       // ignore
     }
@@ -98,26 +54,6 @@ export default function ExaminationsPage() {
       showToast("Failed to generate seat plan.");
     } finally {
       setIsGeneratingSeats(false);
-    }
-  }
-
-  async function handleAllocateInvigilators() {
-    try {
-      setIsAllocatingInvigilators(true);
-      const res = await fetch("/api/invigilators", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: selectedExam.id }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setInvigilators(data.data ?? []);
-        showToast(data.message || "Invigilators assigned successfully!");
-      }
-    } catch {
-      showToast("Failed to allocate invigilators.");
-    } finally {
-      setIsAllocatingInvigilators(false);
     }
   }
 
@@ -161,22 +97,14 @@ export default function ExaminationsPage() {
                 Examinations / Exam Schedule &amp; Seating Plans
               </p>
               <h1 style={{ margin: "0 0 8px", color: "var(--ink)", fontSize: 28, lineHeight: 1.15 }}>
-                Examination Planning &amp; Venue Allocation
+                Examination Schedule &amp; Seating Plans
               </h1>
               <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.5 }}>
-                Automated seat plans, invigilator ratio compliance (1:30), and hall capacity validation.
+                Review examination rooms, cohort coverage, and validated seating capacity.
               </p>
             </div>
 
             <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: 10 }}>
-              <button
-                style={secondaryButtonStyle}
-                type="button"
-                disabled={isAllocatingInvigilators}
-                onClick={handleAllocateInvigilators}
-              >
-                {isAllocatingInvigilators ? "Allocating..." : "⚡ Assign Invigilators"}
-              </button>
               <button
                 style={primaryButtonStyle}
                 type="button"
@@ -283,10 +211,10 @@ export default function ExaminationsPage() {
               </div>
             </article>
 
-            {/* Venue & Seat Plan Sidebar */}
+            {/* Exam room and seat plan sidebar */}
             <aside className="panel" style={{ display: "grid", alignContent: "start", gap: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ ...pillStyle, color: "#0e67cb", background: "#e8f2ff" }}>Venue Allocation</span>
+                <span style={{ ...pillStyle, color: "#0e67cb", background: "#e8f2ff" }}>Exam Room</span>
                 <span style={{ fontSize: "12px", color: "#64748b" }}>Exam Mode</span>
               </div>
               <h2 style={{ margin: 0, color: "var(--ink)", fontSize: 24 }}>{selectedExam.room.room_code}</h2>
@@ -327,45 +255,7 @@ export default function ExaminationsPage() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 }}>
                 <SmallCard label="Exam Capacity" value={`${selectedExam.room.exam_capacity} seats`} />
                 <SmallCard label="Cohort Size" value={`${selectedExam.section.max_students} students`} />
-                <SmallCard label="Required Staff" value={`${Math.ceil(selectedExam.section.max_students / 30)} Invigilators`} />
                 <SmallCard label="Capacity Check" value="Passes ✓" />
-              </div>
-
-              {/* Invigilators List */}
-              <div style={{ display: "grid", gap: 8 }}>
-                <h3 style={{ margin: "4px 0 0", fontSize: 14, fontWeight: 700, color: "#0F203D" }}>
-                  Assigned Invigilators ({invigilators.length})
-                </h3>
-                {invigilators.length > 0 ? (
-                  invigilators.map((inv, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        border: "1px solid var(--card-border)",
-                        borderRadius: "8px",
-                        padding: "8px 12px",
-                        background: "#ffffff",
-                      }}
-                    >
-                      <div>
-                        <strong style={{ color: "var(--ink)", fontSize: 13, display: "block" }}>
-                          {inv.lecturer ? `${inv.lecturer.first_name} ${inv.lecturer.last_name}` : "Faculty"}
-                        </strong>
-                        <span style={{ fontSize: "11px", color: "#64748b" }}>Role: {inv.duty_role || "Support"}</span>
-                      </div>
-                      <span style={{ ...pillStyle, fontSize: "11px", color: "#1677f5", background: "#eff6ff" }}>
-                        {inv.status || "Assigned"}
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <p style={{ fontSize: "12px", color: "#64748b", margin: 0 }}>
-                    Click &quot;Assign Invigilators&quot; to auto-assign staff based on 1:30 ratio.
-                  </p>
-                )}
               </div>
             </aside>
           </section>
@@ -415,18 +305,6 @@ const primaryButtonStyle = {
   color: "#ffffff",
   background: "linear-gradient(135deg, #1c7cf4, #1264c8)",
   boxShadow: "0 12px 22px rgba(29, 116, 245, 0.18)",
-  cursor: "pointer",
-  fontWeight: 600,
-  fontSize: "13px",
-};
-
-const secondaryButtonStyle = {
-  minHeight: 38,
-  border: "1px solid var(--card-border)",
-  borderRadius: 10,
-  padding: "0 14px",
-  color: "#294663",
-  background: "#ffffff",
   cursor: "pointer",
   fontWeight: 600,
   fontSize: "13px",

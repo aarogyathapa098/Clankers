@@ -49,7 +49,7 @@ export default function ModulesPage() {
               <span>Connect modules, faculty, cohorts, and weekly teaching hours before timetable scheduling.</span>
                           </div>
             <div className="resource-actions">
-              <a href="/timetable" className="primary" style={{ textDecoration: "none", padding: "10px 16px", borderRadius: "8px", fontWeight: 600, fontSize: "13px" }}>
+              <a href="/timetable?create=1" className="primary" style={{ textDecoration: "none", padding: "10px 16px", borderRadius: "8px", fontWeight: 600, fontSize: "13px" }}>
                 + Schedule Module in Timetable
               </a>
             </div>
@@ -103,6 +103,7 @@ export default function ModulesPage() {
                     <th>Weekly Contact Sessions</th>
                     <th>Session Duration</th>
                     <th>Status</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -119,6 +120,14 @@ export default function ModulesPage() {
 <td>{module.duration_minutes || 90} mins</td>
                       <td>
                         <span className="status-pill available">Active</span>
+                      </td>
+                      <td>
+                        <a
+                          className="table-action-link"
+                          href={`/timetable?create=1&moduleId=${encodeURIComponent(module.id)}`}
+                        >
+                          Schedule
+                        </a>
                       </td>
                     </tr>
                   ))}
