@@ -211,16 +211,17 @@ export function TimetablePage() {
 
   async function handleSaveSession(draftPayload: any) {
     try {
-      const res = await fetch("/api/sessions", {
-        method: "POST",
+      const isEditing = Boolean(draftPayload.id);
+      const res = await fetch(isEditing ? `/api/sessions/${draftPayload.id}` : "/api/sessions", {
+        method: isEditing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(draftPayload),
       });
 
       const json = await res.json();
 
-      if (res.status === 201 && json.success) {
-        pushToast("success", "Timetable session scheduled and validated successfully!");
+      if (res.ok && json.success) {
+        pushToast("success", isEditing ? "Timetable session updated with no conflicts." : "Timetable session scheduled with no conflicts.");
         setIsCreating(false);
         setSelectedSession(null);
         setConflictState({ show: false, conflicts: [], alternatives: [], pendingDraft: null });
@@ -243,7 +244,11 @@ export function TimetablePage() {
           alternatives: json.alternatives || [],
           pendingDraft: draftPayload,
         });
-        pushToast("warning", "Scheduling clash detected! Review alternatives.");
+        const exactMessage = (json.conflicts ?? [])
+          .map((conflict: ConflictDetails) => conflict.description)
+          .filter(Boolean)
+          .join(" • ");
+        pushToast("warning", exactMessage || json.message || "Scheduling clash detected. The session was not saved.");
       } else {
         pushToast("error", json.message || "Failed to schedule session.");
       }

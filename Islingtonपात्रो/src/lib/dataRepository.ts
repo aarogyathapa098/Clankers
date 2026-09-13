@@ -473,17 +473,19 @@ class AcademicDataRepository {
     const draftLecturer = this.lecturers.find((l) => l.id === draft.lecturer_id || l.lecturer_id === draft.lecturer_id);
     const draftSlot = this.timeslots.find((t) => t.id === draft.time_slot_id || t.time_slot_id === draft.time_slot_id);
     const draftSections = this.sections.filter((sec) => (draft.section_ids || []).includes(sec.id) || (draft.section_ids || []).includes(sec.section_id ?? ""));
+    const slotLabel = draftSlot
+      ? `${draftSlot.day_of_week} ${draftSlot.start_time}–${draftSlot.end_time}`
+      : "the selected time";
 
     // Check overlaps with active sessions
     for (const existing of this.sessions) {
       if (draft.id && (existing.id === draft.id || existing.session_id === draft.id)) continue;
       if (existing.status === "cancelled") continue;
 
-      // Same time slot and date check
-      const sameDate = !draft.session_date || existing.session_date === draft.session_date;
+      // A time-slot represents the recurring weekly day/time in this timetable.
       const sameSlot = existing.time_slot_id === draft.time_slot_id;
 
-      if (sameDate && sameSlot) {
+      if (sameSlot) {
         // 1. Room Clash
         if (draft.room_id && (existing.room_id === draft.room_id || (draftRoom?.room_id && existing.room_id === draftRoom.room_id))) {
           conflicts.push({
@@ -494,7 +496,7 @@ class AcademicDataRepository {
             conflict_date: draft.session_date || existing.session_date,
             time_slot_id: draft.time_slot_id,
             severity: "critical",
-            description: `Room ${draftRoom?.room_code || draft.room_id} is already booked for this time slot.`,
+            description: `Room ${draftRoom?.room_code || draft.room_id} is already booked at this time (${slotLabel}).`,
             is_resolved: false,
           });
         }
@@ -509,7 +511,7 @@ class AcademicDataRepository {
             conflict_date: draft.session_date || existing.session_date,
             time_slot_id: draft.time_slot_id,
             severity: "critical",
-            description: `${draftLecturer?.first_name || "Lecturer"} ${draftLecturer?.last_name || ""} is already teaching another class during this time slot.`,
+            description: `${`${draftLecturer?.first_name || "This faculty"} ${draftLecturer?.last_name || ""}`.trim()} already has a class during this slot (${slotLabel}).`,
             is_resolved: false,
           });
         }
@@ -528,7 +530,7 @@ class AcademicDataRepository {
             conflict_date: draft.session_date || existing.session_date,
             time_slot_id: draft.time_slot_id,
             severity: "critical",
-            description: `Cohort ${sec?.section_code || clashingSec} has another lecture scheduled in this time slot.`,
+            description: `Cohort ${sec?.section_code || clashingSec} already has a class during this slot (${slotLabel}).`,
             is_resolved: false,
           });
         }
@@ -547,7 +549,7 @@ class AcademicDataRepository {
           conflict_type: "CAPACITY",
           conflict_date: draft.session_date || new Date().toISOString().split("T")[0],
           time_slot_id: draft.time_slot_id,
-          severity: "warning",
+          severity: "critical",
           description: `Room capacity exceeded: Cohort requires ${totalStudents} seats but Room ${draftRoom.room_code} provides only ${cap}.`,
           is_resolved: false,
         });
@@ -561,7 +563,7 @@ class AcademicDataRepository {
     }
 
     return {
-      valid: conflicts.filter((c) => c.severity === "critical").length === 0,
+      valid: conflicts.length === 0,
       conflicts,
       alternatives,
     };
@@ -616,14 +618,30 @@ class AcademicDataRepository {
     return { success: true, data: newSession };
   }
 
-  async updateSession(id: string, updates: Partial<Session>): Promise<{ success: boolean; data?: Session; error?: string }> {
+  async updateSession(id: string, updates: Partial<Session>): Promise<{ success: boolean; data?: Session; error?: string; conflicts?: Conflict[]; alternatives?: any[] }> {
     const index = this.sessions.findIndex((s) => s.id === id || s.session_id === id);
     if (index === -1) {
       return { success: false, error: "Session not found" };
     }
 
-    this.sessions[index] = { ...this.sessions[index], ...updates };
-    return { success: true, data: this.sessions[index] };
+    const updatedSession: Session = {
+      ...this.sessions[index],
+      ...updates,
+      id: this.sessions[index].id,
+      session_id: this.sessions[index].session_id,
+    };
+    const validation = await this.validateSession(updatedSession);
+    if (!validation.valid) {
+      return {
+        success: false,
+        error: "The session was not updated because it conflicts with the timetable.",
+        conflicts: validation.conflicts,
+        alternatives: validation.alternatives,
+      };
+    }
+
+    this.sessions[index] = updatedSession;
+    return { success: true, data: updatedSession };
   }
 
   async deleteSession(id: string): Promise<boolean> {
