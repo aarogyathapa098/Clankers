@@ -5,9 +5,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const { programmeId, semester } = body;
     const result = await dataRepository.generateTimetable(programmeId, semester);
+    const hasIssues = result.totalConflicts > 0;
     return NextResponse.json({
       success: true,
-      message: `Successfully scheduled ${result.generatedCount} academic sessions with zero constraint clashes`,
+      message: hasIssues
+        ? `Schedule generated with issues: ${result.totalScheduled} scheduled, ${result.unscheduled.length} unscheduled.`
+        : `Schedule generated: ${result.totalScheduled} sessions scheduled with zero constraint clashes${result.generatedCount ? ` (${result.generatedCount} new)` : ""}.`,
       data: result,
     });
   } catch (error: unknown) {

@@ -78,6 +78,15 @@ type CreateDefaults = {
   timeslotId?: string;
 };
 
+type GenerationResult = {
+  totalSessions: number;
+  totalScheduled: number;
+  totalConflicts: number;
+  capacityViolations: number;
+  unscheduled: Array<{ module_id: string; section_id: string; reason: string }>;
+  conflictDetails: string[];
+};
+
 const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
 export function TimetablePage() {
@@ -88,6 +97,8 @@ export function TimetablePage() {
   const [sections, setSections] = useState<TimetableSection[]>([]);
   const [timeslots, setTimeslots] = useState<Timeslot[]>([]);
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [generationResult, setGenerationResult] = useState<GenerationResult | null>(null);
 
   const [selectedDay, setSelectedDay] = useState("All");
   const [selectedTimeslotId, setSelectedTimeslotId] = useState("");
@@ -241,6 +252,31 @@ export function TimetablePage() {
     }, 4000);
   }
 
+  async function handleGenerateSchedule() {
+    try {
+      setGenerating(true);
+      setGenerationResult(null);
+      const response = await fetch("/api/timetable/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const json = await response.json();
+      if (!response.ok || !json.success) {
+        pushToast("error", json.message || "Schedule generation failed.");
+        return;
+      }
+
+      setGenerationResult(json.data);
+      pushToast(json.data.totalConflicts > 0 ? "warning" : "success", json.message);
+      await loadData();
+    } catch {
+      pushToast("error", "Network error while generating the schedule.");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   async function handleSaveSession(draftPayload: any) {
     try {
       const isEditing = Boolean(draftPayload.id);
@@ -371,6 +407,9 @@ export function TimetablePage() {
           <button type="button" className="primary" onClick={() => { setCreateDefaults(null); setIsCreating(true); }}>
             + New Session
           </button>
+          <button type="button" onClick={handleGenerateSchedule} disabled={generating || loading}>
+            {generating ? "Generating..." : "Generate Schedule"}
+          </button>
         </div>
       </header>
 
@@ -384,6 +423,22 @@ export function TimetablePage() {
         />
         <TimetableStat label="Active Sessions" value={summary.activeSessions} subtext="Validated without clash" />
       </section>
+
+      {generationResult && (
+        <section className="panel" style={{ marginBottom: "16px", padding: "14px 18px" }} aria-live="polite">
+          <strong style={{ color: generationResult.totalConflicts ? "#b45309" : "#15803d" }}>
+            {generationResult.totalConflicts ? "Schedule Generated With Issues" : "Schedule Generated"}
+          </strong>
+          <span style={{ display: "block", marginTop: "5px", color: "#475569", fontSize: "13px" }}>
+            {generationResult.totalScheduled} of {generationResult.totalSessions} required sessions scheduled · {generationResult.totalConflicts} issues · {generationResult.capacityViolations} capacity violations
+          </span>
+          {generationResult.conflictDetails.length > 0 && (
+            <ul style={{ margin: "8px 0 0", paddingLeft: "20px", color: "#7c2d12", fontSize: "12px" }}>
+              {generationResult.conflictDetails.map((detail, index) => <li key={`${detail}-${index}`}>{detail}</li>)}
+            </ul>
+          )}
+        </section>
+      )}
 
       <section className="timetable-board panel">
         <div className="timetable-board-header">

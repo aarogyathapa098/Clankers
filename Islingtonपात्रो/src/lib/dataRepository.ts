@@ -217,7 +217,7 @@ const initialSessions: Session[] = [
   { id: "sess-2", session_id: "sess-2", module_id: "mod-2", lecturer_id: "lec-1", room_id: "room-3", time_slot_id: "ts-6", section_ids: ["sec-2"], session_type: "lab", session_date: "2026-09-16", duration_minutes: 90, status: "scheduled", notes: "PyTorch neural net training" },
   { id: "sess-3", session_id: "sess-3", module_id: "mod-5", lecturer_id: "lec-3", room_id: "room-7", time_slot_id: "ts-11", section_ids: ["sec-1"], session_type: "tutorial", session_date: "2026-09-17", duration_minutes: 90, status: "confirmed", notes: "ER Diagram modeling exercises" },
   { id: "sess-4", session_id: "sess-4", module_id: "mod-4", lecturer_id: "lec-4", room_id: "room-9", time_slot_id: "ts-2", section_ids: ["sec-2"], session_type: "lecture", session_date: "2026-09-15", duration_minutes: 90, status: "confirmed", notes: "Next.js & React architecture" },
-  { id: "sess-5", session_id: "sess-5", module_id: "mod-3", lecturer_id: "lec-4", room_id: "room-4", time_slot_id: "ts-9", section_ids: ["sec-3"], session_type: "lab", session_date: "2026-09-16", duration_minutes: 90, status: "scheduled", notes: "CI/CD Pipeline setup" },
+  { id: "sess-5", session_id: "sess-5", module_id: "mod-3", lecturer_id: "lec-4", room_id: "room-6", time_slot_id: "ts-9", section_ids: ["sec-3"], session_type: "lab", session_date: "2026-09-16", duration_minutes: 90, status: "scheduled", notes: "CI/CD Pipeline setup" },
 ];
 
 const initialConflicts: Conflict[] = [
@@ -349,10 +349,42 @@ class AcademicDataRepository {
           module_id: m.module_id || m.id,
           module_code: m.module_code,
           module_name: m.module_name || m.module_code,
+          programme_id: m.programme_id,
           credit_hours: m.credit_hours || 20,
           weekly_sessions: m.weekly_sessions || 3,
           duration_minutes: m.duration_minutes || 90,
           status: m.status || "active",
+        }));
+      }
+
+      const { data: dbSections } = await supabaseServer.from("section").select("*");
+      if (dbSections && dbSections.length > 0) {
+        this.sections = dbSections.map((s: any) => ({
+          id: s.id || s.section_id,
+          section_id: s.section_id || s.id,
+          section_code: s.section_code,
+          section_name: s.section_name || s.section_code,
+          programme_id: s.programme_id,
+          module_id: s.module_id,
+          academic_year: s.academic_year,
+          semester: s.semester,
+          student_count: s.student_count || 0,
+          max_students: s.max_students || s.student_count || 0,
+          status: s.status || "active",
+        }));
+      }
+
+      const { data: dbTimeslots } = await supabaseServer.from("time_slots").select("*");
+      if (dbTimeslots && dbTimeslots.length > 0) {
+        const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+        this.timeslots = dbTimeslots.map((t: any) => ({
+          id: t.id || t.time_slot_id,
+          time_slot_id: t.time_slot_id || t.id,
+          day_of_week: typeof t.day_of_week === "number" ? dayNames[t.day_of_week - 1] : t.day_of_week,
+          start_time: String(t.start_time).slice(0, 5),
+          end_time: String(t.end_time).slice(0, 5),
+          slot_type: t.slot_type || "class",
+          is_available: t.is_available !== false,
         }));
       }
 
@@ -814,40 +846,170 @@ class AcademicDataRepository {
   }
 
   // --- Automated Timetable Generator ---
-  async generateTimetable(programmeId?: string, semester?: string): Promise<{ generatedCount: number; sessions: Session[] }> {
-    const activeSections = this.sections.filter((s) => s.status === "active");
-    const activeModules = this.modules.filter((m) => m.status === "active");
-    const activeRooms = this.rooms.filter((r) => r.is_available && r.status === "active");
-    const newSessions: Session[] = [];
+  async generateTimetable(programmeId?: string, semester?: string) {
+    await this.initFromSupabase();
 
-    let slotIndex = 0;
-    for (const sec of activeSections) {
-      for (const mod of activeModules.slice(0, 3)) {
-        const slot = this.timeslots[slotIndex % this.timeslots.length];
-        const room = activeRooms[slotIndex % activeRooms.length];
-        const lecturer = this.lecturers[slotIndex % this.lecturers.length];
+    const activeModules = this.modules.filter(
+      (module) => module.status === "active" && (!programmeId || !module.programme_id || module.programme_id === programmeId),
+    );
+    const activeSections = this.sections.filter(
+      (section) =>
+        section.status === "active" &&
+        (!programmeId || section.programme_id === programmeId) &&
+        (!semester || section.semester === semester),
+    );
+    const availableSlots = this.timeslots.filter((slot) => slot.is_available && slot.slot_type === "class");
+    const availableRooms = this.rooms.filter((room) => room.is_available && room.status === "active");
+    const activeLecturers = this.lecturers.filter((lecturer) => lecturer.status === "active");
+    const existingSessions = this.sessions.filter((session) => session.status !== "cancelled");
 
-        const session: Session = {
-          id: `auto-sess-${Date.now()}-${slotIndex}`,
-          module_id: mod.id,
-          lecturer_id: lecturer.id,
-          room_id: room.id,
-          time_slot_id: slot.id,
-          section_ids: [sec.id],
-          session_type: mod.module_code.includes("AI") || mod.module_code.includes("WT") ? "lab" : "lecture",
-          session_date: new Date(Date.now() + (slotIndex % 5) * 86400000).toISOString().split("T")[0],
-          duration_minutes: 90,
-          status: "scheduled",
-          notes: "Automated schedule assignment",
-        };
+    type Requirement = { section: Section; module: Module; ordinal: number; suitableRoomCount: number };
+    const requirements: Requirement[] = [];
+    const coveredSessions: Session[] = [];
+    let totalRequiredSessions = 0;
+    let alreadyScheduledCount = 0;
 
-        newSessions.push(session);
-        this.sessions.push(session);
-        slotIndex++;
+    activeSections.forEach((section, sectionIndex) => {
+      // The database schema links each section to its module. The primed demo data predates
+      // that field, so its smallest isolated fallback is one deterministic module per section.
+      const linkedModule = activeModules.find(
+        (module) => module.id === section.module_id || module.module_id === section.module_id,
+      ) || activeModules[sectionIndex % activeModules.length];
+      if (!linkedModule) return;
+
+      const matchingSessions = existingSessions.filter(
+        (session) =>
+          session.module_id === linkedModule.id &&
+          session.section_ids.some((id) => id === section.id || id === section.section_id),
+      );
+      const alreadyScheduled = Math.min(linkedModule.weekly_sessions, matchingSessions.length);
+      totalRequiredSessions += linkedModule.weekly_sessions;
+      alreadyScheduledCount += alreadyScheduled;
+      coveredSessions.push(...matchingSessions.slice(0, linkedModule.weekly_sessions));
+      const missing = Math.max(0, linkedModule.weekly_sessions - matchingSessions.length);
+      const suitableRoomCount = availableRooms.filter((room) => room.capacity >= section.student_count).length;
+      for (let ordinal = 0; ordinal < missing; ordinal++) {
+        requirements.push({ section, module: linkedModule, ordinal, suitableRoomCount });
+      }
+    });
+
+    requirements.sort(
+      (a, b) => a.suitableRoomCount - b.suitableRoomCount || b.section.student_count - a.section.student_count ||
+        a.section.section_code.localeCompare(b.section.section_code) || a.module.module_code.localeCompare(b.module.module_code),
+    );
+
+    const workingSessions = [...existingSessions];
+    const scheduled: Session[] = [];
+    const unscheduled: Array<{ module_id: string; section_id: string; reason: string }> = [];
+    const lecturerLoad = new Map<string, number>();
+    workingSessions.forEach((session) => {
+      lecturerLoad.set(session.lecturer_id, (lecturerLoad.get(session.lecturer_id) || 0) + session.duration_minutes);
+    });
+
+    const dateForSlot = (slot: Timeslot) => {
+      const names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const target = names.indexOf(String(slot.day_of_week));
+      const date = new Date();
+      const offset = (target - date.getDay() + 7) % 7;
+      date.setDate(date.getDate() + offset);
+      return date.toISOString().split("T")[0];
+    };
+
+    for (const requirement of requirements) {
+      const suitableRooms = availableRooms
+        .filter((room) => room.capacity >= requirement.section.student_count)
+        .sort((a, b) => a.capacity - b.capacity || a.room_code.localeCompare(b.room_code));
+      const lecturers = [...activeLecturers].sort(
+        (a, b) => (lecturerLoad.get(a.id) || 0) - (lecturerLoad.get(b.id) || 0) || a.id.localeCompare(b.id),
+      );
+      let assignment: Session | undefined;
+
+      for (const slot of availableSlots) {
+        for (const room of suitableRooms) {
+          for (const lecturer of lecturers) {
+            const occupied = workingSessions.some(
+              (session) =>
+                session.time_slot_id === slot.id &&
+                (session.room_id === room.id ||
+                  session.lecturer_id === lecturer.id ||
+                  session.section_ids.some((id) => id === requirement.section.id || id === requirement.section.section_id)),
+            );
+            if (occupied) continue;
+
+            assignment = {
+              id: `auto-${requirement.section.id}-${requirement.module.id}-${requirement.ordinal}-${Date.now()}`,
+              module_id: requirement.module.id,
+              lecturer_id: lecturer.id,
+              room_id: room.id,
+              time_slot_id: slot.id,
+              section_ids: [requirement.section.id],
+              session_type: "class",
+              session_date: dateForSlot(slot),
+              duration_minutes: requirement.module.duration_minutes || 90,
+              status: "scheduled",
+              notes: "Generated by constraint-based scheduler",
+            };
+            break;
+          }
+          if (assignment) break;
+        }
+        if (assignment) break;
+      }
+
+      if (!assignment) {
+        const reason = suitableRooms.length === 0
+          ? `No available room can hold ${requirement.section.student_count} students in ${requirement.section.section_code}.`
+          : availableSlots.length === 0
+            ? "No available teaching time slots exist."
+            : `No clash-free room, faculty and time slot combination is available for ${requirement.section.section_code}.`;
+        unscheduled.push({ module_id: requirement.module.id, section_id: requirement.section.id, reason });
+        continue;
+      }
+
+      workingSessions.push(assignment);
+      scheduled.push(assignment);
+      lecturerLoad.set(
+        assignment.lecturer_id,
+        (lecturerLoad.get(assignment.lecturer_id) || 0) + assignment.duration_minutes,
+      );
+    }
+
+    const conflictDetails: string[] = [];
+    let capacityViolations = 0;
+    const completeSchedule = [...coveredSessions, ...scheduled];
+    completeSchedule.forEach((session, index) => {
+      const room = availableRooms.find((item) => item.id === session.room_id);
+      const cohortSize = activeSections
+        .filter((section) => session.section_ids.includes(section.id))
+        .reduce((total, section) => total + section.student_count, 0);
+      if (!room || room.capacity < cohortSize) {
+        capacityViolations++;
+        conflictDetails.push(`${room?.room_code || "Room"} does not have capacity for ${cohortSize} students.`);
+      }
+      completeSchedule.slice(index + 1).forEach((other) => {
+        if (other.time_slot_id !== session.time_slot_id) return;
+        if (other.room_id === session.room_id) conflictDetails.push(`Room ${room?.room_code || session.room_id} is double-booked.`);
+        if (other.lecturer_id === session.lecturer_id) conflictDetails.push(`Faculty ${session.lecturer_id} is double-booked.`);
+        if (other.section_ids.some((id) => session.section_ids.includes(id))) conflictDetails.push(`Cohort ${session.section_ids[0]} is double-booked.`);
+      });
+    });
+
+    if (conflictDetails.length === 0) {
+      for (const session of scheduled) {
+        await this.createSession(session);
       }
     }
 
-    return { generatedCount: newSessions.length, sessions: newSessions };
+    return {
+      generatedCount: scheduled.length,
+      sessions: scheduled,
+      unscheduled,
+      totalSessions: totalRequiredSessions,
+      totalScheduled: alreadyScheduledCount + scheduled.length,
+      totalConflicts: conflictDetails.length + unscheduled.length,
+      capacityViolations,
+      conflictDetails: [...conflictDetails, ...unscheduled.map((item) => item.reason)],
+    };
   }
 
   // --- Dashboard Aggregates ---
