@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabase/server";
+import { dataRepository } from "@/lib/dataRepository";
 
 export async function GET(
   _request: Request,
@@ -7,18 +7,14 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+        const sessions = await dataRepository.getSessions();
+    const session = sessions.find((s) => s.id === id || s.session_id === id);
 
-    const { data, error } = await supabaseServer
-      .from("session")
-      .select("*")
-      .eq("session_id", id)
-      .single();
-
-    if (error) {
-      return NextResponse.json({ success: false, message: error.message }, { status: 404 });
+    if (!session) {
+      return NextResponse.json({ success: false, message: "Session not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({ success: true, data: session });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ success: false, message }, { status: 500 });
@@ -33,18 +29,12 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    const { data, error } = await supabaseServer
-      .from("session")
-      .update(body)
-      .eq("session_id", id)
-      .select()
-      .single();
-
-    if (error) {
-      return NextResponse.json({ success: false, message: error.message }, { status: 400 });
+    const res = await dataRepository.updateSession(id, body);
+    if (!res.success) {
+      return NextResponse.json({ success: false, message: res.error }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true, message: "Session updated successfully", data });
+    return NextResponse.json({ success: true, message: "Session updated successfully", data: res.data });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ success: false, message }, { status: 500 });
@@ -58,16 +48,8 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    const { error } = await supabaseServer
-      .from("session")
-      .delete()
-      .eq("session_id", id);
-
-    if (error) {
-      return NextResponse.json({ success: false, message: error.message }, { status: 400 });
-    }
-
-    return NextResponse.json({ success: true, message: "Session deleted successfully" });
+    const deleted = await dataRepository.deleteSession(id);
+    return NextResponse.json({ success: true, deleted, message: "Session deleted successfully" });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json({ success: false, message }, { status: 500 });
