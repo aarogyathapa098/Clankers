@@ -140,11 +140,67 @@ type LecturerRecord = {
 // --- Static Timetable Data (fallback until sessions API has real data) ---
 const timeSlots = ["08:00", "09:30", "11:00", "12:30", "14:00", "15:30", "17:00"];
 const days = [
-  { key: "mon", label: "Mon 13" },
-  { key: "tue", label: "Tue 14" },
-  { key: "wed", label: "Wed 15" },
-  { key: "thu", label: "Thu 16" },
-  { key: "fri", label: "Fri 17" },
+  { key: "mon", label: "Mon 13", full: "Monday, Sep 13" },
+  { key: "tue", label: "Tue 14", full: "Tuesday, Sep 14" },
+  { key: "wed", label: "Wed 15", full: "Wednesday, Sep 15" },
+  { key: "thu", label: "Thu 16", full: "Thursday, Sep 16" },
+  { key: "fri", label: "Fri 17", full: "Friday, Sep 17" },
+];
+
+type MonthDayCell = {
+  day: number;
+  isCurrent: boolean;
+  isWeekend?: boolean;
+  sessionsCount: number;
+  badges?: { label: string; color: string; bg: string }[];
+};
+
+const monthWeeks: MonthDayCell[][] = [
+  [
+    { day: 31, isCurrent: false, sessionsCount: 0 },
+    { day: 1, isCurrent: true, sessionsCount: 2, badges: [{ label: "AI301", color: "#14532D", bg: "#DCFCE7" }, { label: "Networks", color: "#4C1D95", bg: "#EDE9FE" }] },
+    { day: 2, isCurrent: true, sessionsCount: 3, badges: [{ label: "DB204", color: "#78350F", bg: "#FEF3C7" }, { label: "ML301", color: "#0369A1", bg: "#E0F2FE" }] },
+    { day: 3, isCurrent: true, sessionsCount: 2, badges: [{ label: "AI301", color: "#4C1D95", bg: "#EDE9FE" }, { label: "CS205", color: "#12335C", bg: "#DCEBFA" }] },
+    { day: 4, isCurrent: true, sessionsCount: 3, badges: [{ label: "SE302", color: "#881337", bg: "#FFE4E6" }, { label: "CV301", color: "#14532D", bg: "#DCFCE7" }] },
+    { day: 5, isCurrent: true, isWeekend: true, sessionsCount: 0 },
+    { day: 6, isCurrent: true, isWeekend: true, sessionsCount: 0 },
+  ],
+  [
+    { day: 7, isCurrent: true, sessionsCount: 3, badges: [{ label: "CS205", color: "#12335C", bg: "#DCEBFA" }, { label: "WT201", color: "#12335C", bg: "#DCEBFA" }] },
+    { day: 8, isCurrent: true, sessionsCount: 3, badges: [{ label: "AI301", color: "#14532D", bg: "#DCFCE7" }, { label: "SE302", color: "#881337", bg: "#FFE4E6" }] },
+    { day: 9, isCurrent: true, sessionsCount: 3, badges: [{ label: "DB204", color: "#78350F", bg: "#FEF3C7" }, { label: "WT201", color: "#12335C", bg: "#DCEBFA" }] },
+    { day: 10, isCurrent: true, sessionsCount: 2, badges: [{ label: "AI301", color: "#4C1D95", bg: "#EDE9FE" }, { label: "CS205", color: "#12335C", bg: "#DCEBFA" }] },
+    { day: 11, isCurrent: true, sessionsCount: 3, badges: [{ label: "SE302", color: "#881337", bg: "#FFE4E6" }, { label: "AI401", color: "#881337", bg: "#FFE4E6" }] },
+    { day: 12, isCurrent: true, isWeekend: true, sessionsCount: 0 },
+    { day: 13, isCurrent: true, isWeekend: true, sessionsCount: 0 },
+  ],
+  [
+    { day: 14, isCurrent: true, sessionsCount: 3, badges: [{ label: "CS205", color: "#12335C", bg: "#DCEBFA" }, { label: "WT201", color: "#12335C", bg: "#DCEBFA" }] },
+    { day: 15, isCurrent: true, sessionsCount: 3, badges: [{ label: "AI301", color: "#14532D", bg: "#DCFCE7" }, { label: "Networks", color: "#4C1D95", bg: "#EDE9FE" }] },
+    { day: 16, isCurrent: true, sessionsCount: 3, badges: [{ label: "DB204", color: "#78350F", bg: "#FEF3C7" }, { label: "ML301", color: "#0369A1", bg: "#E0F2FE" }] },
+    { day: 17, isCurrent: true, sessionsCount: 2, badges: [{ label: "AI301", color: "#4C1D95", bg: "#EDE9FE" }, { label: "CS205", color: "#12335C", bg: "#DCEBFA" }] },
+    { day: 18, isCurrent: true, sessionsCount: 3, badges: [{ label: "SE302", color: "#881337", bg: "#FFE4E6" }, { label: "CV301", color: "#14532D", bg: "#DCFCE7" }] },
+    { day: 19, isCurrent: true, isWeekend: true, sessionsCount: 0 },
+    { day: 20, isCurrent: true, isWeekend: true, sessionsCount: 0 },
+  ],
+  [
+    { day: 21, isCurrent: true, sessionsCount: 3, badges: [{ label: "CS205", color: "#12335C", bg: "#DCEBFA" }, { label: "WT201", color: "#12335C", bg: "#DCEBFA" }] },
+    { day: 22, isCurrent: true, sessionsCount: 2, badges: [{ label: "AI301", color: "#14532D", bg: "#DCFCE7" }, { label: "Networks", color: "#4C1D95", bg: "#EDE9FE" }] },
+    { day: 23, isCurrent: true, sessionsCount: 3, badges: [{ label: "DB204", color: "#78350F", bg: "#FEF3C7" }, { label: "ML301", color: "#0369A1", bg: "#E0F2FE" }] },
+    { day: 24, isCurrent: true, sessionsCount: 2, badges: [{ label: "AI301", color: "#4C1D95", bg: "#EDE9FE" }, { label: "CS205", color: "#12335C", bg: "#DCEBFA" }] },
+    { day: 25, isCurrent: true, sessionsCount: 3, badges: [{ label: "SE302", color: "#881337", bg: "#FFE4E6" }, { label: "CV301", color: "#14532D", bg: "#DCFCE7" }] },
+    { day: 26, isCurrent: true, isWeekend: true, sessionsCount: 0 },
+    { day: 27, isCurrent: true, isWeekend: true, sessionsCount: 0 },
+  ],
+  [
+    { day: 28, isCurrent: true, sessionsCount: 3, badges: [{ label: "CS205", color: "#12335C", bg: "#DCEBFA" }, { label: "WT201", color: "#12335C", bg: "#DCEBFA" }] },
+    { day: 29, isCurrent: true, sessionsCount: 2, badges: [{ label: "AI301", color: "#14532D", bg: "#DCFCE7" }, { label: "Networks", color: "#4C1D95", bg: "#EDE9FE" }] },
+    { day: 30, isCurrent: true, sessionsCount: 3, badges: [{ label: "DB204", color: "#78350F", bg: "#FEF3C7" }, { label: "WT201", color: "#12335C", bg: "#DCEBFA" }] },
+    { day: 1, isCurrent: false, sessionsCount: 0 },
+    { day: 2, isCurrent: false, sessionsCount: 0 },
+    { day: 3, isCurrent: false, isWeekend: true, sessionsCount: 0 },
+    { day: 4, isCurrent: false, isWeekend: true, sessionsCount: 0 },
+  ],
 ];
 
 type ScheduleCell = {
@@ -213,6 +269,8 @@ export default function DashboardPage() {
   const [conflicts, setConflicts] = useState<ConflictRecord[]>([]);
   const [lecturers, setLecturers] = useState<LecturerRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [timetableMode, setTimetableMode] = useState<"day" | "week" | "month">("week");
+  const [selectedDayKey, setSelectedDayKey] = useState<string>("mon");
 
   async function handleResolveConflict(conflictId: string) {
     try {
@@ -497,18 +555,24 @@ export default function DashboardPage() {
           <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 59.5%) minmax(0, 40.5%)", gap: "16px", alignItems: "start" }}>
             {/* Left Column */}
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              {/* Weekly Timetable Card */}
+              {/* Weekly / Daily / Monthly Timetable Card */}
               <div style={{ backgroundColor: "#FFFFFF", borderRadius: "9px", border: "1px solid #E2E8F0", boxShadow: "0 1px 3px rgba(15, 32, 61, 0.03)", padding: "16px", boxSizing: "border-box" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <CalendarIcon size={18} color="#1677F5" />
-                    <h2 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#0F203D" }}>Weekly Timetable</h2>
+                    <h2 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "#0F203D" }}>
+                      {timetableMode === "day"
+                        ? "Daily Schedule"
+                        : timetableMode === "month"
+                        ? "Monthly Overview"
+                        : "Weekly Timetable"}
+                    </h2>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                     <div style={{ backgroundColor: "#F1F5F9", borderRadius: "6px", padding: "2px", display: "flex", alignItems: "center" }}>
-                      <button type="button" style={{ border: "none", backgroundColor: "transparent", color: "#64748B", fontSize: "11.5px", fontWeight: 500, padding: "4px 11px", borderRadius: "4px", cursor: "pointer" }}>Day</button>
-                      <button type="button" style={{ border: "none", backgroundColor: "#1677F5", color: "#FFFFFF", fontSize: "11.5px", fontWeight: 600, padding: "4px 13px", borderRadius: "4px", cursor: "pointer" }}>Week</button>
-                      <button type="button" style={{ border: "none", backgroundColor: "transparent", color: "#64748B", fontSize: "11.5px", fontWeight: 500, padding: "4px 11px", borderRadius: "4px", cursor: "pointer" }}>Month</button>
+                      <button type="button" onClick={() => setTimetableMode("day")} style={{ border: "none", backgroundColor: timetableMode === "day" ? "#1677F5" : "transparent", color: timetableMode === "day" ? "#FFFFFF" : "#64748B", fontSize: "11.5px", fontWeight: timetableMode === "day" ? 600 : 500, padding: "4px 11px", borderRadius: "4px", cursor: "pointer", transition: "all 0.15s" }}>Day</button>
+                      <button type="button" onClick={() => setTimetableMode("week")} style={{ border: "none", backgroundColor: timetableMode === "week" ? "#1677F5" : "transparent", color: timetableMode === "week" ? "#FFFFFF" : "#64748B", fontSize: "11.5px", fontWeight: timetableMode === "week" ? 600 : 500, padding: "4px 13px", borderRadius: "4px", cursor: "pointer", transition: "all 0.15s" }}>Week</button>
+                      <button type="button" onClick={() => setTimetableMode("month")} style={{ border: "none", backgroundColor: timetableMode === "month" ? "#1677F5" : "transparent", color: timetableMode === "month" ? "#FFFFFF" : "#64748B", fontSize: "11.5px", fontWeight: timetableMode === "month" ? 600 : 500, padding: "4px 11px", borderRadius: "4px", cursor: "pointer", transition: "all 0.15s" }}>Month</button>
                     </div>
                     <div style={{ width: "26px", height: "26px", borderRadius: "5px", border: "1px solid #E2E8F0", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", backgroundColor: "#FFFFFF" }}>
                       <GridIcon size={13} color="#64748B" />
@@ -516,46 +580,269 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Grid Table */}
-                <div style={{ border: "1px solid #E8EEF5", borderRadius: "7px", overflow: "hidden" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
-                    <thead>
-                      <tr style={{ backgroundColor: "#F8FAFD", height: "32px" }}>
-                        <th style={{ width: "62px" }}></th>
-                        {days.map((day) => (
-                          <th key={day.key} style={{ borderLeft: "1px solid #E8EEF5", fontSize: "11.5px", fontWeight: 700, color: "#0F203D", textAlign: "center", padding: "6px 0" }}>
-                            {day.label}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {timeSlots.map((time) => (
-                        <tr key={time} style={{ borderTop: "1px solid #E8EEF5", height: "52px" }}>
-                          <td style={{ fontSize: "11px", fontWeight: 600, color: "#64748B", textAlign: "center", verticalAlign: "middle", padding: "4px", backgroundColor: "#FFFFFF" }}>
-                            {time}
-                          </td>
-                          {days.map((day) => {
-                            const cell = timetableData[time]?.[day.key];
+                {/* Day View */}
+                {timetableMode === "day" && (
+                  <div>
+                    {/* Day selector pills */}
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px", gap: "8px", flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", gap: "6px" }}>
+                        {days.map((day) => {
+                          const isDayActive = selectedDayKey === day.key;
+                          return (
+                            <button
+                              key={day.key}
+                              type="button"
+                              onClick={() => setSelectedDayKey(day.key)}
+                              style={{
+                                padding: "5px 12px",
+                                borderRadius: "6px",
+                                fontSize: "12px",
+                                fontWeight: isDayActive ? 600 : 500,
+                                border: isDayActive ? "1px solid #1677F5" : "1px solid #E2E8F0",
+                                backgroundColor: isDayActive ? "#1677F5" : "#F8FAFC",
+                                color: isDayActive ? "#FFFFFF" : "#475569",
+                                cursor: "pointer",
+                                transition: "all 0.15s ease",
+                              }}
+                            >
+                              {day.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <span style={{ fontSize: "12px", color: "#64748B", fontWeight: 500 }}>
+                        {days.find((d) => d.key === selectedDayKey)?.full}
+                      </span>
+                    </div>
+
+                    {/* Single Day Timeline Table */}
+                    <div style={{ border: "1px solid #E8EEF5", borderRadius: "7px", overflow: "hidden" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <thead>
+                          <tr style={{ backgroundColor: "#F8FAFD", height: "32px", borderBottom: "1px solid #E8EEF5" }}>
+                            <th style={{ width: "90px", fontSize: "11px", fontWeight: 700, color: "#64748B", textAlign: "left", paddingLeft: "14px" }}>Time</th>
+                            <th style={{ fontSize: "11px", fontWeight: 700, color: "#64748B", textAlign: "left", paddingLeft: "10px" }}>Module Code & Subject</th>
+                            <th style={{ width: "110px", fontSize: "11px", fontWeight: 700, color: "#64748B", textAlign: "left" }}>Cohort</th>
+                            <th style={{ width: "100px", fontSize: "11px", fontWeight: 700, color: "#64748B", textAlign: "left" }}>Room</th>
+                            <th style={{ width: "90px", fontSize: "11px", fontWeight: 700, color: "#64748B", textAlign: "center", paddingRight: "14px" }}>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {timeSlots.map((time) => {
+                            const cell = timetableData[time]?.[selectedDayKey];
                             if (!cell) {
-                              return <td key={day.key} style={{ borderLeft: "1px solid #E8EEF5", padding: "3px 4px", backgroundColor: "#FFFFFF" }} />;
+                              return (
+                                <tr key={time} style={{ borderBottom: "1px solid #F1F5F9", height: "44px" }}>
+                                  <td style={{ fontSize: "11.5px", fontWeight: 600, color: "#64748B", paddingLeft: "14px" }}>
+                                    {time}
+                                  </td>
+                                  <td colSpan={3} style={{ fontSize: "11px", color: "#94A3B8", fontStyle: "italic", paddingLeft: "10px" }}>
+                                    No class scheduled — Free slot
+                                  </td>
+                                  <td style={{ textAlign: "center", paddingRight: "14px" }}>
+                                    <span style={{ fontSize: "10.5px", padding: "2px 7px", borderRadius: "4px", backgroundColor: "#F1F5F9", color: "#64748B", fontWeight: 500 }}>
+                                      Available
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
                             }
                             const st = getBlockStyle(cell.type);
                             return (
-                              <td key={day.key} style={{ borderLeft: "1px solid #E8EEF5", padding: "3px 4px", backgroundColor: "#FFFFFF", verticalAlign: "middle" }}>
-                                <div style={{ backgroundColor: st.bg, border: `1px solid ${st.border}`, borderRadius: "6px", padding: "4px 6px", height: "100%", boxSizing: "border-box", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                                  <div style={{ fontSize: "11px", fontWeight: 700, color: st.text, lineHeight: 1.2 }}>{cell.code}</div>
-                                  <div style={{ fontSize: "9.5px", color: "#475569", lineHeight: 1.25 }}>{cell.group}</div>
-                                  <div style={{ fontSize: "9.5px", color: "#475569", lineHeight: 1.25 }}>{cell.room}</div>
-                                </div>
-                              </td>
+                              <tr key={time} style={{ borderBottom: "1px solid #F1F5F9", height: "50px", backgroundColor: "#FFFFFF" }}>
+                                <td style={{ fontSize: "11.5px", fontWeight: 600, color: "#0F203D", paddingLeft: "14px" }}>
+                                  {time}
+                                </td>
+                                <td style={{ paddingLeft: "10px" }}>
+                                  <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", backgroundColor: st.bg, border: `1px solid ${st.border}`, borderRadius: "5px", padding: "3px 9px" }}>
+                                    <span style={{ fontSize: "11.5px", fontWeight: 700, color: st.text }}>{cell.code}</span>
+                                    <span style={{ fontSize: "10px", color: "#475569" }}>Lecture</span>
+                                  </div>
+                                </td>
+                                <td style={{ fontSize: "11.5px", fontWeight: 500, color: "#334155" }}>
+                                  {cell.group}
+                                </td>
+                                <td style={{ fontSize: "11.5px", fontWeight: 600, color: "#1677F5" }}>
+                                  {cell.room}
+                                </td>
+                                <td style={{ textAlign: "center", paddingRight: "14px" }}>
+                                  <span style={{ fontSize: "10.5px", padding: "2px 7px", borderRadius: "4px", backgroundColor: "#DCFCE7", color: "#15803D", fontWeight: 600 }}>
+                                    Confirmed
+                                  </span>
+                                </td>
+                              </tr>
                             );
                           })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Week View */}
+                {timetableMode === "week" && (
+                  <div style={{ border: "1px solid #E8EEF5", borderRadius: "7px", overflow: "hidden" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+                      <thead>
+                        <tr style={{ backgroundColor: "#F8FAFD", height: "32px" }}>
+                          <th style={{ width: "62px" }}></th>
+                          {days.map((day) => (
+                            <th key={day.key} style={{ borderLeft: "1px solid #E8EEF5", fontSize: "11.5px", fontWeight: 700, color: "#0F203D", textAlign: "center", padding: "6px 0" }}>
+                              {day.label}
+                            </th>
+                          ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {timeSlots.map((time) => (
+                          <tr key={time} style={{ borderTop: "1px solid #E8EEF5", height: "52px" }}>
+                            <td style={{ fontSize: "11px", fontWeight: 600, color: "#64748B", textAlign: "center", verticalAlign: "middle", padding: "4px", backgroundColor: "#FFFFFF" }}>
+                              {time}
+                            </td>
+                            {days.map((day) => {
+                              const cell = timetableData[time]?.[day.key];
+                              if (!cell) {
+                                return <td key={day.key} style={{ borderLeft: "1px solid #E8EEF5", padding: "3px 4px", backgroundColor: "#FFFFFF" }} />;
+                              }
+                              const st = getBlockStyle(cell.type);
+                              return (
+                                <td key={day.key} style={{ borderLeft: "1px solid #E8EEF5", padding: "3px 4px", backgroundColor: "#FFFFFF", verticalAlign: "middle" }}>
+                                  <div style={{ backgroundColor: st.bg, border: `1px solid ${st.border}`, borderRadius: "6px", padding: "4px 6px", height: "100%", boxSizing: "border-box", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                                    <div style={{ fontSize: "11px", fontWeight: 700, color: st.text, lineHeight: 1.2 }}>{cell.code}</div>
+                                    <div style={{ fontSize: "9.5px", color: "#475569", lineHeight: 1.25 }}>{cell.group}</div>
+                                    <div style={{ fontSize: "9.5px", color: "#475569", lineHeight: 1.25 }}>{cell.room}</div>
+                                  </div>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* Month View */}
+                {timetableMode === "month" && (
+                  <div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                      <span style={{ fontSize: "12.5px", fontWeight: 700, color: "#0F203D" }}>
+                        September 2026
+                      </span>
+                      <span style={{ fontSize: "11px", color: "#64748B" }}>
+                        Term 1 · 5 Weeks Overview
+                      </span>
+                    </div>
+
+                    <div style={{ border: "1px solid #E8EEF5", borderRadius: "7px", overflow: "hidden" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+                        <thead>
+                          <tr style={{ backgroundColor: "#F8FAFD", height: "28px", borderBottom: "1px solid #E8EEF5" }}>
+                            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((dayName) => (
+                              <th
+                                key={dayName}
+                                style={{
+                                  fontSize: "11px",
+                                  fontWeight: 700,
+                                  color: dayName === "Sat" || dayName === "Sun" ? "#94A3B8" : "#0F203D",
+                                  textAlign: "center",
+                                  padding: "4px 0",
+                                  borderLeft: dayName !== "Mon" ? "1px solid #E8EEF5" : "none",
+                                }}
+                              >
+                                {dayName}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {monthWeeks.map((week, wIdx) => (
+                            <tr key={wIdx} style={{ borderTop: wIdx > 0 ? "1px solid #E8EEF5" : "none", height: "54px" }}>
+                              {week.map((cell, cIdx) => {
+                                const isToday = cell.day === 13 && cell.isCurrent;
+                                return (
+                                  <td
+                                    key={cIdx}
+                                    style={{
+                                      borderLeft: cIdx > 0 ? "1px solid #E8EEF5" : "none",
+                                      padding: "3px 4px",
+                                      backgroundColor: !cell.isCurrent
+                                        ? "#F8FAFC"
+                                        : cell.isWeekend
+                                        ? "#FAFAFB"
+                                        : isToday
+                                        ? "#EFF6FF"
+                                        : "#FFFFFF",
+                                      verticalAlign: "top",
+                                    }}
+                                  >
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2px" }}>
+                                      <span
+                                        style={{
+                                          fontSize: "10.5px",
+                                          fontWeight: isToday ? 800 : cell.isCurrent ? 600 : 400,
+                                          color: isToday
+                                            ? "#1677F5"
+                                            : !cell.isCurrent
+                                            ? "#CBD5E1"
+                                            : cell.isWeekend
+                                            ? "#94A3B8"
+                                            : "#1E293B",
+                                          width: isToday ? "17px" : "auto",
+                                          height: isToday ? "17px" : "auto",
+                                          borderRadius: isToday ? "50%" : "0",
+                                          backgroundColor: isToday ? "#DBEAFE" : "transparent",
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                        }}
+                                      >
+                                        {cell.day}
+                                      </span>
+                                      {cell.sessionsCount > 0 && (
+                                        <span style={{ fontSize: "8.5px", color: "#64748B", fontWeight: 600 }}>
+                                          {cell.sessionsCount} classes
+                                        </span>
+                                      )}
+                                    </div>
+                                    {cell.badges && cell.badges.length > 0 && (
+                                      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                                        {cell.badges.slice(0, 2).map((b, bIdx) => (
+                                          <div
+                                            key={bIdx}
+                                            style={{
+                                              fontSize: "8.5px",
+                                              fontWeight: 600,
+                                              color: b.color,
+                                              backgroundColor: b.bg,
+                                              borderRadius: "3px",
+                                              padding: "1px 3px",
+                                              whiteSpace: "nowrap",
+                                              overflow: "hidden",
+                                              textOverflow: "ellipsis",
+                                              lineHeight: 1.15,
+                                            }}
+                                          >
+                                            {b.label}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div style={{ marginTop: "8px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px", color: "#64748B" }}>
+                      <span>Month Summary: <strong>56 sessions scheduled</strong> across cohorts</span>
+                      <span style={{ color: "#1677F5", fontWeight: 600 }}>Week 3 Active</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Lower Left Two Cards */}

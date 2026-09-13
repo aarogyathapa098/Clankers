@@ -104,11 +104,20 @@ function SidebarIcon({ name }: { name: IconName }) {
   switch (name) {
     case "logo":
       return (
-        <svg {...common} style={{ width: "26px", height: "26px" }}>
-          <path d="m21 16-9 5-9-5V8l9-5 9 5v8Z" />
-          <path d="M12 21V12" />
-          <path d="M3.5 8.5 12 13l8.5-4.5" />
-        </svg>
+        <img
+          src="/logo.jpeg"
+          alt="Islington Logo"
+          style={{
+            width: "56px",
+            height: "56px",
+            borderRadius: "10px",
+            objectFit: "contain",
+            backgroundColor: "#FFFFFF",
+            padding: "3px",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.35)",
+            flexShrink: 0,
+          }}
+        />
       );
     case "overview":
       return (
@@ -219,26 +228,26 @@ export function AcademicSidebar() {
       }}
       aria-label="Academic Planning Navigation"
     >
-      {/* Brand */}
+      {/* Brand Header */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "10px",
-          padding: "0 6px 20px",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.07)",
-          marginBottom: "14px",
+          gap: "12px",
+          padding: "2px 2px 18px",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+          marginBottom: "16px",
         }}
       >
-        <div style={{ color: "#FFFFFF", display: "flex", alignItems: "center" }}>
+        <div style={{ color: "#FFFFFF", display: "flex", alignItems: "center", flexShrink: 0 }}>
           <SidebarIcon name="logo" />
         </div>
         <div style={{ display: "flex", flexDirection: "column" }}>
-          <span style={{ color: "#FFFFFF", fontSize: "15px", fontWeight: 700, lineHeight: 1.2 }}>
+          <span style={{ color: "#FFFFFF", fontSize: "15px", fontWeight: 700, lineHeight: 1.25 }}>
             Academic Planning
           </span>
-          <span style={{ color: "#8EA7CA", fontSize: "12px", fontWeight: 400 }}>
-            Plan Smarter
+          <span style={{ color: "#8EA7CA", fontSize: "12px", fontWeight: 500, marginTop: "3px" }}>
+            Islington पात्रो
           </span>
         </div>
       </div>
