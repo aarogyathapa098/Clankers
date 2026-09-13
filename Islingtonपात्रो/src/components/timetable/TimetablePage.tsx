@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, ReactNode, useMemo, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 import {
   TimetableRoom,
   TimetableSection,
@@ -18,20 +18,37 @@ type Lecturer = {
   first_name: string;
   last_name: string;
   email: string;
+  department?: string;
+  assigned_hours?: number;
+  max_weekly_hours?: number;
 };
 
 type Timeslot = {
   id: string;
+  time_slot_id?: string;
   day_of_week: string;
   start_time: string;
   end_time: string;
 };
 
 type Session = TimetableSessionInput & {
+  id: string;
+  session_id?: string;
   module_id: string;
-  academic_period_id: string;
+  lecturer_id: string;
+  room_id: string;
+  time_slot_id?: string;
+  timeslot_id: string;
+  academic_period_id?: string;
+  section_ids: string[];
   session_type: string;
+  session_date?: string;
+  status?: string;
   notes?: string | null;
+  module?: Module;
+  lecturer?: Lecturer;
+  room?: TimetableRoom;
+  timeslot?: Timeslot;
 };
 
 type Toast = {
@@ -40,129 +57,133 @@ type Toast = {
   message: string;
 };
 
-const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
-
-const initialData = {
-  modules: [
-    { id: "mod-ai301", module_code: "AI301", module_name: "Artificial Intelligence" },
-    { id: "mod-cs205", module_code: "CS205", module_name: "Database Systems" },
-    { id: "mod-se220", module_code: "SE220", module_name: "Software Engineering" },
-    { id: "mod-wt201", module_code: "WT201", module_name: "Web Technologies" },
-    { id: "mod-db204", module_code: "DB204", module_name: "Data Modelling" },
-  ] satisfies Module[],
-  lecturers: [
-    { id: "lec-lee", first_name: "Prof.", last_name: "Lee", email: "lee@example.edu" },
-    { id: "lec-smith", first_name: "Dr.", last_name: "Smith", email: "smith@example.edu" },
-    { id: "lec-kumar", first_name: "Dr.", last_name: "Kumar", email: "kumar@example.edu" },
-  ] satisfies Lecturer[],
-  rooms: [
-    { id: "room-lab1", room_code: "LAB-1", room_name: "Lab 1", capacity: 40, room_type: "Lab" },
-    { id: "room-201", room_code: "R-201", room_name: "Room 201", capacity: 45, room_type: "Lecture" },
-    { id: "room-302", room_code: "R-302", room_name: "Room 302", capacity: 55, room_type: "Lecture" },
-    { id: "room-401", room_code: "R-401", room_name: "Room 401", capacity: 65, room_type: "Lecture" },
-  ] satisfies TimetableRoom[],
-  sections: [
-    { id: "sec-a", section_name: "Group A", section_code: "BSc-A", max_students: 60 },
-    { id: "sec-b", section_name: "Group B", section_code: "BSc-B", max_students: 35 },
-    { id: "sec-c", section_name: "Group C", section_code: "BSc-C", max_students: 42 },
-  ] satisfies TimetableSection[],
-  timeslots: [
-    { id: "ts-mon-08", day_of_week: "Monday", start_time: "08:00", end_time: "09:30" },
-    { id: "ts-mon-10", day_of_week: "Monday", start_time: "10:00", end_time: "11:30" },
-    { id: "ts-mon-12", day_of_week: "Monday", start_time: "12:00", end_time: "13:30" },
-    { id: "ts-tue-08", day_of_week: "Tuesday", start_time: "08:00", end_time: "09:30" },
-    { id: "ts-tue-10", day_of_week: "Tuesday", start_time: "10:00", end_time: "11:30" },
-    { id: "ts-tue-12", day_of_week: "Tuesday", start_time: "12:00", end_time: "13:30" },
-    { id: "ts-wed-08", day_of_week: "Wednesday", start_time: "08:00", end_time: "09:30" },
-    { id: "ts-wed-10", day_of_week: "Wednesday", start_time: "10:00", end_time: "11:30" },
-    { id: "ts-wed-12", day_of_week: "Wednesday", start_time: "12:00", end_time: "13:30" },
-    { id: "ts-thu-08", day_of_week: "Thursday", start_time: "08:00", end_time: "09:30" },
-    { id: "ts-thu-10", day_of_week: "Thursday", start_time: "10:00", end_time: "11:30" },
-    { id: "ts-thu-12", day_of_week: "Thursday", start_time: "12:00", end_time: "13:30" },
-    { id: "ts-fri-08", day_of_week: "Friday", start_time: "08:00", end_time: "09:30" },
-    { id: "ts-fri-10", day_of_week: "Friday", start_time: "10:00", end_time: "11:30" },
-    { id: "ts-fri-12", day_of_week: "Friday", start_time: "12:00", end_time: "13:30" },
-  ] satisfies Timeslot[],
-  sessions: [
-    {
-      id: "session-1",
-      module_id: "mod-cs205",
-      lecturer_id: "lec-smith",
-      room_id: "room-401",
-      timeslot_id: "ts-mon-08",
-      academic_period_id: "period-1",
-      section_ids: ["sec-a"],
-      session_type: "lecture",
-      status: "confirmed",
-    },
-    {
-      id: "session-2",
-      module_id: "mod-ai301",
-      lecturer_id: "lec-lee",
-      room_id: "room-lab1",
-      timeslot_id: "ts-tue-08",
-      academic_period_id: "period-1",
-      section_ids: ["sec-b"],
-      session_type: "lab",
-      status: "draft",
-    },
-    {
-      id: "session-3",
-      module_id: "mod-db204",
-      lecturer_id: "lec-kumar",
-      room_id: "room-302",
-      timeslot_id: "ts-wed-10",
-      academic_period_id: "period-1",
-      section_ids: ["sec-a"],
-      session_type: "tutorial",
-      status: "confirmed",
-    },
-  ] satisfies Session[],
+type ConflictDetails = {
+  id?: string;
+  conflict_type: string;
+  severity: string;
+  description: string;
 };
 
-function lecturerName(lecturer?: Lecturer) {
-  if (!lecturer) {
-    return "Unassigned";
-  }
+type Recommendation = {
+  type: string;
+  title: string;
+  description: string;
+  recommended_room_id?: string;
+  recommended_slot_id?: string;
+};
 
-  return `${lecturer.first_name} ${lecturer.last_name}`;
-}
-
-function timeLabel(timeslot?: Timeslot) {
-  if (!timeslot) {
-    return "";
-  }
-
-  return `${timeslot.start_time.slice(0, 5)} - ${timeslot.end_time.slice(0, 5)}`;
-}
-
-function cellTone(session: Session) {
-  const tones: Record<string, string> = {
-    "mod-ai301": "green",
-    "mod-cs205": "blue",
-    "mod-se220": "violet",
-    "mod-wt201": "yellow",
-    "mod-db204": "rose",
-  };
-
-  return tones[session.module_id] ?? "blue";
-}
+const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
 export function TimetablePage() {
-  const [sessions, setSessions] = useState<Session[]>(initialData.sessions);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [modules, setModules] = useState<Module[]>([]);
+  const [lecturers, setLecturers] = useState<Lecturer[]>([]);
+  const [rooms, setRooms] = useState<TimetableRoom[]>([]);
+  const [sections, setSections] = useState<TimetableSection[]>([]);
+  const [timeslots, setTimeslots] = useState<Timeslot[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [selectedDay, setSelectedDay] = useState("All");
-  const [selectedTimeslotId, setSelectedTimeslotId] = useState(initialData.timeslots[0].id);
+  const [selectedTimeslotId, setSelectedTimeslotId] = useState("");
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Conflict Modal State
+  const [conflictState, setConflictState] = useState<{
+    show: boolean;
+    conflicts: ConflictDetails[];
+    alternatives: Recommendation[];
+    pendingDraft: any | null;
+  }>({
+    show: false,
+    conflicts: [],
+    alternatives: [],
+    pendingDraft: null,
+  });
+
+  // Fetch all core academic data on mount
+  async function loadData() {
+    try {
+      setLoading(true);
+      const [sessRes, modRes, lecRes, roomRes, secRes, slotRes] = await Promise.allSettled([
+        fetch("/api/sessions").then((r) => r.json()),
+        fetch("/api/modules").then((r) => r.json()),
+        fetch("/api/lecturers").then((r) => r.json()),
+        fetch("/api/rooms").then((r) => r.json()),
+        fetch("/api/sections").then((r) => r.json()),
+        fetch("/api/time-slots").then((r) => r.json()),
+      ]);
+
+      if (sessRes.status === "fulfilled" && sessRes.value.success) {
+        const mapped = (sessRes.value.data ?? []).map((s: any) => ({
+          ...s,
+          id: s.id || s.session_id,
+          timeslot_id: s.time_slot_id || s.timeslot_id,
+        }));
+        setSessions(mapped);
+      }
+
+      if (modRes.status === "fulfilled" && modRes.value.success) {
+        setModules(modRes.value.data ?? []);
+      }
+
+      if (lecRes.status === "fulfilled" && lecRes.value.success) {
+        setLecturers(lecRes.value.data ?? []);
+      }
+
+      if (roomRes.status === "fulfilled" && roomRes.value.success) {
+        const mappedRooms = (roomRes.value.data ?? []).map((r: any) => ({
+          id: r.id || r.room_id,
+          room_code: r.room_code,
+          room_name: r.room_name || `Room ${r.room_code}`,
+          capacity: r.capacity || 40,
+          room_type: r.room_type || "classroom",
+        }));
+        setRooms(mappedRooms);
+      }
+
+      if (secRes.status === "fulfilled" && secRes.value.success) {
+        const mappedSections = (secRes.value.data ?? []).map((sec: any) => ({
+          id: sec.id || sec.section_id,
+          section_code: sec.section_code,
+          section_name: sec.section_name || sec.section_code,
+          max_students: sec.student_count || sec.max_students || 40,
+        }));
+        setSections(mappedSections);
+      }
+
+      if (slotRes.status === "fulfilled" && slotRes.value.success) {
+        const mappedSlots = (slotRes.value.data ?? []).map((sl: any) => ({
+          id: sl.id || sl.time_slot_id,
+          day_of_week: sl.day_of_week,
+          start_time: sl.start_time,
+          end_time: sl.end_time,
+        }));
+        setTimeslots(mappedSlots);
+        if (mappedSlots.length > 0 && !selectedTimeslotId) {
+          setSelectedTimeslotId(mappedSlots[0].id);
+        }
+      }
+    } catch {
+      pushToast("error", "Error loading academic timetable records.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const activeSessions = sessions.filter((session) => session.status?.toLowerCase() !== "cancelled");
   const currentDay = new Date().toLocaleDateString("en-US", { weekday: "long" });
-  const selectedTimeslot = initialData.timeslots.find((timeslot) => timeslot.id === selectedTimeslotId);
+  const selectedTimeslot = timeslots.find((timeslot) => timeslot.id === selectedTimeslotId);
 
   const summary = useMemo(() => {
     const scheduledClassesToday = activeSessions.filter((session) => {
-      const timeslot = initialData.timeslots.find((item) => item.id === session.timeslot_id);
+      const timeslot = timeslots.find((item) => item.id === session.timeslot_id);
       return timeslot?.day_of_week === currentDay;
     }).length;
 
@@ -174,46 +195,137 @@ export function TimetablePage() {
 
     return {
       scheduledClassesToday,
-      totalRooms: initialData.rooms.length,
-      availableRooms: initialData.rooms.length - occupiedRooms.size,
+      totalRooms: rooms.length,
+      availableRooms: Math.max(0, rooms.length - occupiedRooms.size),
       activeSessions: activeSessions.length,
     };
-  }, [activeSessions, currentDay, selectedTimeslotId]);
+  }, [activeSessions, currentDay, selectedTimeslotId, rooms.length, timeslots]);
 
   function pushToast(type: Toast["type"], message: string) {
     const toast = { id: Date.now(), type, message };
-    setToasts((items) => [toast, ...items].slice(0, 3));
+    setToasts((items) => [toast, ...items].slice(0, 4));
+    setTimeout(() => {
+      setToasts((items) => items.filter((t) => t.id !== toast.id));
+    }, 4000);
+  }
+
+  async function handleSaveSession(draftPayload: any) {
+    try {
+      const res = await fetch("/api/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(draftPayload),
+      });
+
+      const json = await res.json();
+
+      if (res.status === 201 && json.success) {
+        pushToast("success", "Timetable session scheduled and validated successfully!");
+        setIsCreating(false);
+        setSelectedSession(null);
+        setConflictState({ show: false, conflicts: [], alternatives: [], pendingDraft: null });
+        // Refresh sessions list
+        const refresh = await fetch("/api/sessions").then((r) => r.json());
+        if (refresh.success) {
+          setSessions(
+            (refresh.data ?? []).map((s: any) => ({
+              ...s,
+              id: s.id || s.session_id,
+              timeslot_id: s.time_slot_id || s.timeslot_id,
+            }))
+          );
+        }
+      } else if (res.status === 409) {
+        // Conflict detected by backend!
+        setConflictState({
+          show: true,
+          conflicts: json.conflicts || [{ conflict_type: "SCHEDULE_CLASH", severity: "critical", description: json.message }],
+          alternatives: json.alternatives || [],
+          pendingDraft: draftPayload,
+        });
+        pushToast("warning", "Scheduling clash detected! Review alternatives.");
+      } else {
+        pushToast("error", json.message || "Failed to schedule session.");
+      }
+    } catch {
+      pushToast("error", "Network error when saving session.");
+    }
   }
 
   function saveSession(form: FormEvent<HTMLFormElement>) {
     form.preventDefault();
-
     const data = new FormData(form.currentTarget);
     const sectionIds = data.getAll("section_ids").map(String);
-    const draft: Session = {
-      id: selectedSession?.id ?? crypto.randomUUID(),
+    const chosenSlot = String(data.get("timeslot_id"));
+
+    const draft = {
+      id: selectedSession?.id,
       module_id: String(data.get("module_id")),
       lecturer_id: String(data.get("lecturer_id")),
       room_id: String(data.get("room_id")),
-      timeslot_id: String(data.get("timeslot_id")),
-      academic_period_id: "period-1",
-      section_ids: sectionIds.length > 0 ? sectionIds : [initialData.sections[0].id],
+      time_slot_id: chosenSlot,
+      timeslot_id: chosenSlot,
+      section_ids: sectionIds.length > 0 ? sectionIds : [sections[0]?.id],
       session_type: String(data.get("session_type") || "lecture"),
-      status: String(data.get("status") || "draft"),
+      status: String(data.get("status") || "scheduled"),
       notes: String(data.get("notes") || ""),
     };
 
-    setSessions((items) => {
-      const exists = items.some((item) => item.id === draft.id);
-      return exists ? items.map((item) => (item.id === draft.id ? draft : item)) : [...items, draft];
-    });
-    setIsCreating(false);
-    setSelectedSession(null);
-    pushToast("success", "Timetable session saved successfully.");
+    handleSaveSession(draft);
+  }
+
+  async function handleDeleteSession(id: string) {
+    try {
+      const res = await fetch(`/api/sessions?id=${id}`, { method: "DELETE" });
+      const json = await res.json();
+      if (json.success) {
+        pushToast("info", "Session removed from timetable.");
+        setSelectedSession(null);
+        setSessions((prev) => prev.filter((s) => s.id !== id && s.session_id !== id));
+      } else {
+        pushToast("error", json.message || "Could not delete session.");
+      }
+    } catch {
+      pushToast("error", "Error communicating with server.");
+    }
+  }
+
+  async function handleAutoGenerate() {
+    try {
+      setIsGenerating(true);
+      pushToast("info", "Constraint-based timetable generator running...");
+      const res = await fetch("/api/timetable/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ programmeId: "prog-1", semester: "Semester 1" }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        pushToast("success", json.message || "Automated timetable successfully generated!");
+        loadData();
+      } else {
+        pushToast("error", json.message || "Timetable generator failed.");
+      }
+    } catch {
+      pushToast("error", "Failed to run timetable generator.");
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  function applyRecommendation(alt: Recommendation) {
+    if (!conflictState.pendingDraft) return;
+    const updated = {
+      ...conflictState.pendingDraft,
+      room_id: alt.recommended_room_id || conflictState.pendingDraft.room_id,
+      time_slot_id: alt.recommended_slot_id || conflictState.pendingDraft.time_slot_id,
+      timeslot_id: alt.recommended_slot_id || conflictState.pendingDraft.timeslot_id,
+    };
+    handleSaveSession(updated);
   }
 
   const rowTimes = Array.from(
-    new Set(initialData.timeslots.map((timeslot) => `${timeslot.start_time}-${timeslot.end_time}`)),
+    new Set(timeslots.map((timeslot) => `${timeslot.start_time}-${timeslot.end_time}`)),
   );
 
   return (
@@ -222,9 +334,20 @@ export function TimetablePage() {
         <div>
           <p>Academic Timetable</p>
           <h1>Master Timetable</h1>
+          <span>Live scheduling engine with active conflict prevention &amp; room allocation.</span>
         </div>
 
         <div className="timetable-actions" aria-label="Timetable controls">
+          <button
+            type="button"
+            className="secondary"
+            disabled={isGenerating}
+            onClick={handleAutoGenerate}
+            style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+          >
+            {isGenerating ? "Generating..." : "⚡ Auto-Generate Schedule"}
+          </button>
+
           <select value={selectedDay} onChange={(event) => setSelectedDay(event.target.value)}>
             <option>All</option>
             {days.map((day) => (
@@ -233,35 +356,35 @@ export function TimetablePage() {
           </select>
 
           <select value={selectedTimeslotId} onChange={(event) => setSelectedTimeslotId(event.target.value)}>
-            {initialData.timeslots.map((timeslot) => (
+            {timeslots.map((timeslot) => (
               <option key={timeslot.id} value={timeslot.id}>
-                {timeslot.day_of_week} - {timeLabel(timeslot)}
+                {timeslot.day_of_week} - {timeslot.start_time} to {timeslot.end_time}
               </option>
             ))}
           </select>
 
-          <button type="button" onClick={() => setIsCreating(true)}>
-            New Session
+          <button type="button" className="primary" onClick={() => setIsCreating(true)}>
+            + New Session
           </button>
         </div>
       </header>
 
       <section className="timetable-summary" aria-label="Timetable summary">
         <TimetableStat label="Scheduled Today" value={summary.scheduledClassesToday} subtext={currentDay} />
-        <TimetableStat label="Total Rooms" value={summary.totalRooms} subtext="Across all venues" />
+        <TimetableStat label="Total Rooms" value={summary.totalRooms} subtext="Across campus buildings" />
         <TimetableStat
           label="Available Rooms"
           value={`${summary.availableRooms} / ${summary.totalRooms}`}
-          subtext={selectedTimeslot ? `${selectedTimeslot.day_of_week} - ${timeLabel(selectedTimeslot)}` : ""}
+          subtext={selectedTimeslot ? `${selectedTimeslot.day_of_week} ${selectedTimeslot.start_time}` : "Active slot"}
         />
-        <TimetableStat label="Active Sessions" value={summary.activeSessions} subtext="Confirmed and draft" />
+        <TimetableStat label="Active Sessions" value={summary.activeSessions} subtext="Validated without clash" />
       </section>
 
       <section className="timetable-board panel">
         <div className="timetable-board-header">
           <div>
             <h2>Weekly Schedule</h2>
-            <p>Click any session to edit details.</p>
+            <p>Click any session block to review allocation or modify timeslot.</p>
           </div>
           <span>{selectedDay === "All" ? "All weekdays" : selectedDay}</span>
         </div>
@@ -286,7 +409,7 @@ export function TimetablePage() {
                   </div>
 
                   {days.map((day) => {
-                    const timeslot = initialData.timeslots.find(
+                    const timeslot = timeslots.find(
                       (item) => item.day_of_week === day && item.start_time === start && item.end_time === end,
                     );
                     const cellSessions = activeSessions.filter((session) => session.timeslot_id === timeslot?.id);
@@ -299,6 +422,10 @@ export function TimetablePage() {
                             key={session.id}
                             onClick={() => setSelectedSession(session)}
                             session={session}
+                            modules={modules}
+                            rooms={rooms}
+                            sections={sections}
+                            lecturers={lecturers}
                           />
                         ))}
                       </div>
@@ -311,7 +438,89 @@ export function TimetablePage() {
         </div>
       </section>
 
-      {toasts.length > 0 ? (
+      {/* Conflict Resolution Modal */}
+      {conflictState.show && (
+        <div className="modal-backdrop">
+          <div className="session-modal" style={{ maxWidth: "560px" }}>
+            <div className="modal-header" style={{ borderBottom: "2px solid #fee2e2" }}>
+              <div>
+                <p style={{ color: "#b91c1c", fontWeight: 700, textTransform: "uppercase" }}>⚠️ Conflict Detected</p>
+                <h2 style={{ color: "#991b1b" }}>Schedule Clash Warning</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setConflictState({ show: false, conflicts: [], alternatives: [], pendingDraft: null })}
+              >
+                Dismiss
+              </button>
+            </div>
+
+            <div style={{ padding: "16px 0", display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div style={{ backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "8px", padding: "14px" }}>
+                <strong style={{ color: "#991b1b", display: "block", marginBottom: "6px" }}>The selected booking cannot be saved:</strong>
+                {conflictState.conflicts.map((c, i) => (
+                  <div key={i} style={{ display: "flex", gap: "8px", alignItems: "flex-start", marginTop: "4px" }}>
+                    <span style={{ color: "#dc2626", fontWeight: "bold" }}>✕</span>
+                    <div>
+                      <strong style={{ color: "#7f1d1d" }}>{c.conflict_type.replace("_", " ")}:</strong>
+                      <span style={{ color: "#450a0a", marginLeft: "4px" }}>{c.description}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {conflictState.alternatives.length > 0 && (
+                <div style={{ marginTop: "12px" }}>
+                  <h3 style={{ fontSize: "14px", fontWeight: 600, color: "#1e293b", marginBottom: "8px" }}>
+                    💡 Intelligent Recommendations
+                  </h3>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    {conflictState.alternatives.map((alt, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          border: "1px solid #bfdbfe",
+                          backgroundColor: "#eff6ff",
+                          borderRadius: "8px",
+                          padding: "12px",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <div>
+                          <strong style={{ color: "#1e40af", display: "block", fontSize: "13px" }}>{alt.title}</strong>
+                          <span style={{ color: "#3b82f6", fontSize: "12px" }}>{alt.description}</span>
+                        </div>
+                        <button
+                          type="button"
+                          className="primary"
+                          style={{ fontSize: "12px", padding: "6px 12px", whiteSpace: "nowrap" }}
+                          onClick={() => applyRecommendation(alt)}
+                        >
+                          Apply &amp; Save
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button
+                type="button"
+                onClick={() => setConflictState({ show: false, conflicts: [], alternatives: [], pendingDraft: null })}
+              >
+                Cancel Booking
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Stack */}
+      {toasts.length > 0 && (
         <div className="toast-stack">
           {toasts.map((toast) => (
             <div className={`toast ${toast.type}`} key={toast.id}>
@@ -319,18 +528,25 @@ export function TimetablePage() {
             </div>
           ))}
         </div>
-      ) : null}
+      )}
 
-      {isCreating || selectedSession ? (
+      {/* Session Create/Edit Modal */}
+      {(isCreating || selectedSession) && (
         <SessionModal
           onClose={() => {
             setIsCreating(false);
             setSelectedSession(null);
           }}
           onSave={saveSession}
+          onDelete={selectedSession ? () => handleDeleteSession(selectedSession.id) : undefined}
           session={selectedSession}
+          modules={modules}
+          lecturers={lecturers}
+          rooms={rooms}
+          sections={sections}
+          timeslots={timeslots}
         />
-      ) : null}
+      )}
     </>
   );
 }
@@ -345,14 +561,33 @@ function TimetableStat(props: { label: string; value: string | number; subtext: 
   );
 }
 
+function cellTone(session: Session) {
+  const tones: Record<string, string> = {
+    "mod-1": "blue",
+    "mod-2": "green",
+    "mod-3": "violet",
+    "mod-4": "yellow",
+    "mod-5": "rose",
+    "mod-6": "cyan",
+  };
+  return tones[session.module_id] ?? "blue";
+}
+
 function SessionCard(props: {
   session: Session;
   onClick: () => void;
+  modules: Module[];
+  rooms: TimetableRoom[];
+  sections: TimetableSection[];
+  lecturers: Lecturer[];
 }) {
-  const module = initialData.modules.find((item) => item.id === props.session.module_id);
-  const room = initialData.rooms.find((item) => item.id === props.session.room_id);
-  const sections = initialData.sections.filter((section) => props.session.section_ids.includes(section.id));
-  const lecturer = initialData.lecturers.find((item) => item.id === props.session.lecturer_id);
+  const module = props.modules.find((item) => item.id === props.session.module_id);
+  const room = props.rooms.find((item) => item.id === props.session.room_id);
+  const lecturer = props.lecturers.find((item) => item.id === props.session.lecturer_id);
+  const secNames = props.sections
+    .filter((sec) => (props.session.section_ids || []).includes(sec.id))
+    .map((s) => s.section_name || s.section_code)
+    .join(", ");
 
   return (
     <button
@@ -362,12 +597,12 @@ function SessionCard(props: {
     >
       <span className="session-card-top">
         <strong>{module?.module_code ?? "Module"}</strong>
-        <em>{props.session.status}</em>
+        <em>{props.session.status ?? "scheduled"}</em>
       </span>
-      <span>{module?.module_name ?? "Untitled module"}</span>
-      <span>{sections.map((section) => section.section_name).join(", ")}</span>
+      <span>{module?.module_name ?? "Scheduled Class"}</span>
+      <span>{secNames || "Cohort Class"}</span>
       <span>
-        {lecturerName(lecturer)} - {room?.room_code}
+        {lecturer ? `${lecturer.first_name} ${lecturer.last_name}` : "Faculty"} - {room?.room_code ?? "Room"}
       </span>
     </button>
   );
@@ -377,16 +612,22 @@ function SessionModal(props: {
   session: Session | null;
   onClose: () => void;
   onSave: (form: FormEvent<HTMLFormElement>) => void;
+  onDelete?: () => void;
+  modules: Module[];
+  lecturers: Lecturer[];
+  rooms: TimetableRoom[];
+  sections: TimetableSection[];
+  timeslots: Timeslot[];
 }) {
-  const defaultTimeslot = props.session?.timeslot_id ?? initialData.timeslots[0].id;
+  const defaultTimeslot = props.session?.timeslot_id || props.timeslots[0]?.id;
 
   return (
     <div className="modal-backdrop">
       <form className="session-modal" onSubmit={props.onSave}>
         <div className="modal-header">
           <div>
-            <p>Session Editor</p>
-            <h2>{props.session ? "Session Details" : "Create Session"}</h2>
+            <p>Academic Scheduler</p>
+            <h2>{props.session ? "Edit Session" : "Schedule New Session"}</h2>
           </div>
           <button type="button" onClick={props.onClose}>
             Close
@@ -395,63 +636,68 @@ function SessionModal(props: {
 
         <div className="modal-grid">
           <Select label="Module" name="module_id" defaultValue={props.session?.module_id}>
-            {initialData.modules.map((module) => (
+            {props.modules.map((module) => (
               <option key={module.id} value={module.id}>
                 {module.module_code} - {module.module_name}
               </option>
             ))}
           </Select>
 
-          <Select label="Lecturer" name="lecturer_id" defaultValue={props.session?.lecturer_id}>
-            {initialData.lecturers.map((lecturer) => (
+          <Select label="Faculty" name="lecturer_id" defaultValue={props.session?.lecturer_id}>
+            {props.lecturers.map((lecturer) => (
               <option key={lecturer.id} value={lecturer.id}>
-                {lecturerName(lecturer)}
+                {lecturer.first_name} {lecturer.last_name} ({lecturer.department || "IT"})
               </option>
             ))}
           </Select>
 
           <Select label="Room" name="room_id" defaultValue={props.session?.room_id}>
-            {initialData.rooms.map((room) => (
+            {props.rooms.map((room) => (
               <option key={room.id} value={room.id}>
-                {room.room_code} - {room.capacity} seats
+                {room.room_code} - {room.room_name} ({room.capacity} seats)
               </option>
             ))}
           </Select>
 
           <Select label="Time Slot" name="timeslot_id" defaultValue={defaultTimeslot}>
-            {initialData.timeslots.map((timeslot) => (
-              <option key={timeslot.id} value={timeslot.id}>
-                {timeslot.day_of_week} - {timeLabel(timeslot)}
+            {props.timeslots.map((slot) => (
+              <option key={slot.id} value={slot.id}>
+                {slot.day_of_week} ({slot.start_time} - {slot.end_time})
               </option>
             ))}
           </Select>
 
           <Select label="Session Type" name="session_type" defaultValue={props.session?.session_type ?? "lecture"}>
             <option value="lecture">Lecture</option>
-            <option value="lab">Lab</option>
+            <option value="lab">Lab Practical</option>
             <option value="tutorial">Tutorial</option>
+            <option value="exam">Examination</option>
           </Select>
 
-          <Select label="Status" name="status" defaultValue={props.session?.status ?? "draft"}>
-            <option value="draft">Draft</option>
+          <Select label="Status" name="status" defaultValue={props.session?.status ?? "scheduled"}>
+            <option value="scheduled">Scheduled</option>
             <option value="confirmed">Confirmed</option>
+            <option value="draft">Draft</option>
             <option value="cancelled">Cancelled</option>
           </Select>
         </div>
 
         <fieldset className="section-picker">
-          <legend>Sections</legend>
-          <div>
-            {initialData.sections.map((section) => (
+          <legend>Assigned Cohorts</legend>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+            {props.sections.map((section) => (
               <label key={section.id}>
                 <input
-                  defaultChecked={props.session?.section_ids.includes(section.id) ?? section.id === initialData.sections[0].id}
+                  defaultChecked={
+                    props.session?.section_ids?.includes(section.id) ||
+                    (!props.session && section.id === props.sections[0]?.id)
+                  }
                   name="section_ids"
                   type="checkbox"
                   value={section.id}
                 />
                 <span>
-                  {section.section_name} - {section.max_students ?? 0} students
+                  {section.section_name || section.section_code} ({section.max_students} students)
                 </span>
               </label>
             ))}
@@ -459,15 +705,30 @@ function SessionModal(props: {
         </fieldset>
 
         <label className="field-label">
-          Notes
-          <textarea name="notes" defaultValue={props.session?.notes ?? ""} placeholder="Optional scheduling note" />
+          Scheduling Notes
+          <textarea name="notes" defaultValue={props.session?.notes ?? ""} placeholder="Add equipment requests, cohort notes, or session focus..." />
         </label>
 
-        <div className="modal-footer">
-          <button type="button" onClick={props.onClose}>
-            Cancel
-          </button>
-          <button type="submit">Save Session</button>
+        <div className="modal-footer" style={{ display: "flex", justifyContent: "space-between" }}>
+          <div>
+            {props.onDelete && (
+              <button
+                type="button"
+                onClick={props.onDelete}
+                style={{ color: "#ef4444", borderColor: "#fca5a5" }}
+              >
+                Delete Session
+              </button>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button type="button" onClick={props.onClose}>
+              Cancel
+            </button>
+            <button type="submit" className="primary">
+              Validate &amp; Save
+            </button>
+          </div>
         </div>
       </form>
     </div>
